@@ -3,16 +3,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Shield, Menu, X, Sun, Moon, Wallet, LogOut } from "lucide-react";
+import { Shield, Menu, X, Sun, Moon, Wallet } from "lucide-react";
 import { Button } from "../ui/button";
-import { useStore } from "@/store/useStore";
+import { useWalletStore } from "@/store/useWalletStore";
 import { useTheme } from "next-themes";
 import { siteConfig } from "@/config/site";
+import { NetworkBadge } from "../wallet/network-badge";
+import { WalletDropdown } from "../wallet/wallet-dropdown";
+import { WalletConnectModal } from "../wallet/wallet-connect-modal";
 
 export function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = React.useState(false);
-  const { connected, walletAddress, connectWallet, disconnectWallet } = useStore();
+  const [isConnectOpen, setIsConnectOpen] = React.useState(false);
+  const { connected } = useWalletStore();
   const { theme, setTheme } = useTheme();
 
   const navItems = [
@@ -23,15 +27,6 @@ export function Navbar() {
     { label: "Activity", href: siteConfig.routes.activityFeed },
     { label: "Analytics", href: siteConfig.routes.analytics },
   ];
-
-  const handleWalletClick = () => {
-    if (connected) {
-      disconnectWallet();
-    } else {
-      // Connect mock wallet for Phase 3
-      connectWallet("GD7K5R5P...LAND", "Freighter");
-    }
-  };
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -78,25 +73,22 @@ export function Navbar() {
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
-            <Button
-              variant={connected ? "outline" : "primary"}
-              size="sm"
-              onClick={handleWalletClick}
-              className="flex items-center space-x-2"
-            >
-              {connected ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs">{walletAddress}</span>
-                  <LogOut className="h-4 w-4 ml-1.5 opacity-60 hover:opacity-100" />
-                </>
-              ) : (
-                <>
-                  <Wallet className="h-4 w-4" />
-                  <span>Connect Wallet</span>
-                </>
-              )}
-            </Button>
+            {/* Network status */}
+            <NetworkBadge />
+
+            {connected ? (
+              <WalletDropdown />
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsConnectOpen(true)}
+                className="flex items-center space-x-2"
+              >
+                <Wallet className="h-4 w-4" />
+                <span>Connect Wallet</span>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -139,31 +131,34 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <div className="px-3 pt-4 border-t border-border mt-3">
-              <Button
-                variant={connected ? "outline" : "primary"}
-                className="w-full flex justify-center items-center space-x-2"
-                onClick={() => {
-                  handleWalletClick();
-                  setIsOpen(false);
-                }}
-              >
-                {connected ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>{walletAddress}</span>
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="h-4 w-4" />
-                    <span>Connect Wallet</span>
-                  </>
-                )}
-              </Button>
+            <div className="px-3 pt-4 border-t border-border mt-3 space-y-3">
+              <div className="flex justify-center">
+                <NetworkBadge />
+              </div>
+              {connected ? (
+                <div className="flex justify-center">
+                  <WalletDropdown />
+                </div>
+              ) : (
+                <Button
+                  variant="primary"
+                  className="w-full flex justify-center items-center space-x-2"
+                  onClick={() => {
+                    setIsConnectOpen(true);
+                    setIsOpen(false);
+                  }}
+                >
+                  <Wallet className="h-4 w-4" />
+                  <span>Connect Wallet</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Wallet Connect Dialog */}
+      <WalletConnectModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />
     </nav>
   );
 }

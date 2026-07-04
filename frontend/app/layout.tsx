@@ -4,6 +4,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { WalletProvider } from "@/providers/wallet-provider";
 import { Navbar } from "@/components/layout/navbar";
 
 const outfit = Outfit({
@@ -31,8 +32,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Navbar />
-            <main className="flex-1 flex flex-col">{children}</main>
+            <WalletProvider>
+              <Navbar />
+              <main className="flex-1 flex flex-col">{children}</main>
+            </WalletProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>
