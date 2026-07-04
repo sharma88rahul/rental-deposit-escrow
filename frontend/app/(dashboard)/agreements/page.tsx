@@ -2,35 +2,62 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, PlusCircle, Filter } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { Search, PlusCircle } from "lucide-react";
+import { useAgreements } from "@/hooks/useAgreements";
+import { useAgreementStore } from "@/store/useAgreementStore";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageLoader } from "@/components/ui/loader";
+import { AgreementTable } from "@/components/agreement/agreement-table";
+import { useRouter } from "next/navigation";
 import { siteConfig } from "@/config/site";
-import { AgreementStatus } from "@/types";
 
 export default function AgreementsPage() {
-  const { agreements } = useStore();
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<"All" | "Active" | "Dispute" | "Completed">("All");
+  const router = useRouter();
+  const { agreementsQuery } = useAgreements();
+  const { filters, setFilters, resetFilters } = useAgreementStore();
+  const [searchInput, setSearchInput] = React.useState(filters.search);
 
-  // Search & Filter Logic
-  const filteredAgreements = agreements.filter((agreement) => {
-    const matchesSearch =
-      agreement.propertyAddress?.toLowerCase().includes(search.toLowerCase()) ||
-      agreement.title?.toLowerCase().includes(search.toLowerCase()) ||
-      agreement.id.toString().includes(search);
+  // Sync local search input with store (debounced or on submit)
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setFilters({ search: searchInput });
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchInput, setFilters]);
 
-    const matchesStatus =
-      statusFilter === "All" ||
-      (statusFilter === "Active" && (agreement.status === "LeaseActive" || agreement.status === "DepositLocked")) ||
-      (statusFilter === "Dispute" && agreement.status === "DisputeRaised") ||
-      (statusFilter === "Completed" && (agreement.status === "FundsReleased" || agreement.status === "Resolved"));
+  const { data: agreements = [], isLoading } = agreementsQuery;
 
-    return matchesSearch && matchesStatus;
-  });
+  // Filter agreements based on store filters
+  const filteredAgreements = React.useMemo(() => {
+    return agreements.filter((agreement) => {
+      const matchesSearch =
+        agreement.propertyAddress?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        agreement.title?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        agreement.id.toString().includes(filters.search);
+
+      const matchesStatus =
+        filters.status === "All" ||
+        (filters.status === "Active" &&
+          (agreement.status === "LeaseActive" || agreement.status === "DepositLocked")) ||
+        (filters.status === "Dispute" && agreement.status === "DisputeRaised") ||
+        (filters.status === "Completed" &&
+          (agreement.status === "FundsReleased" || agreement.status === "Resolved")) ||
+        agreement.status === filters.status;
+
+      const matchesRole =
+        filters.role === "all" ||
+        (filters.role === "landlord" && agreement.landlord === "GD7K5R5P...LAND") ||
+        (filters.role === "tenant" && agreement.tenant === "GD7K5R5P...LAND");
+
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }, [agreements, filters]);
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="space-y-8">
@@ -51,99 +78,74 @@ export default function AgreementsPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/20 p-4 rounded-xl border border-border/40">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card/20 p-4 rounded-xl border border-border/40">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by title, property address, or ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
           />
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          {(["All", "Active", "Dispute", "Completed"] as const).map((filter) => (
-            <Button
-              key={filter}
-              variant={statusFilter === filter ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter(filter)}
-              className="text-xs"
+        {/* Filter Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Status Select */}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-muted-foreground font-semibold">Status:</span>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ status: e.target.value })}
+              className="text-xs bg-secondary/40 border border-border/60 rounded-lg text-foreground px-2 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-primary"
             >
-              {filter}
-            </Button>
-          ))}
+              <option value="All">All Statuses</option>
+              <option value="Created">Created (Draft)</option>
+              <option value="Accepted">Accepted (Unfunded)</option>
+              <option value="LeaseActive">Active Leases</option>
+              <option value="RefundRequested">Refund Proposed</option>
+              <option value="DisputeRaised">Disputed</option>
+              <option value="FundsReleased">Settled / Closed</option>
+            </select>
+          </div>
+
+          {/* Role Select */}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-muted-foreground font-semibold">Role:</span>
+            <select
+              value={filters.role}
+              onChange={(e) => setFilters({ role: e.target.value as "all" | "landlord" | "tenant" })}
+              className="text-xs bg-secondary/40 border border-border/60 rounded-lg text-foreground px-2 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-primary"
+            >
+              <option value="all">All Roles</option>
+              <option value="landlord">As Landlord</option>
+              <option value="tenant">As Tenant</option>
+            </select>
+          </div>
+
+          <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs py-1.5 h-8">
+            Reset Filters
+          </Button>
         </div>
       </div>
 
       {/* Main Table Content */}
-      <Card glass>
-        <CardContent className="p-0">
-          {filteredAgreements.length === 0 ? (
-            <div className="p-8">
-              <EmptyState
-                title="No Agreements Found"
-                description="Try broadening your search criteria or create a new contract to get started."
-                actionText="Create New Agreement"
-                onAction={() => window.location.href = siteConfig.routes.createAgreement}
-              />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border/60 text-muted-foreground bg-secondary/15">
-                    <th className="p-4 font-semibold">Agreement Title & ID</th>
-                    <th className="p-4 font-semibold">Property Address</th>
-                    <th className="p-4 font-semibold">Landlord / Tenant</th>
-                    <th className="p-4 font-semibold">Deposit Amount</th>
-                    <th className="p-4 font-semibold">Status</th>
-                    <th className="p-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {filteredAgreements.map((agreement) => (
-                    <tr key={agreement.id} className="hover:bg-secondary/25 transition-colors">
-                      <td className="p-4">
-                        <div className="font-semibold text-foreground">
-                          {agreement.title || `Agreement #${agreement.id}`}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          ID: {agreement.id}
-                        </div>
-                      </td>
-                      <td className="p-4 max-w-[250px] truncate font-medium">
-                        {agreement.propertyAddress}
-                      </td>
-                      <td className="p-4 text-xs">
-                        <div className="text-foreground">L: {agreement.landlord}</div>
-                        <div className="text-muted-foreground mt-0.5">T: {agreement.tenant}</div>
-                      </td>
-                      <td className="p-4 font-semibold">
-                        {agreement.depositAmount} USDC
-                      </td>
-                      <td className="p-4">
-                        <Badge status={agreement.status} />
-                      </td>
-                      <td className="p-4 text-right">
-                        <Link href={`${siteConfig.routes.agreements}/${agreement.id}`}>
-                          <Button size="sm" variant="outline" className="text-xs">
-                            View Details
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {filteredAgreements.length === 0 ? (
+        <Card glass>
+          <CardContent className="p-8">
+            <EmptyState
+              title="No Agreements Found"
+              description="Try broadening your search criteria or create a new contract to get started."
+              actionText="Create New Agreement"
+              onAction={() => router.push(siteConfig.routes.createAgreement)}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <AgreementTable agreements={filteredAgreements} />
+      )}
     </div>
   );
 }

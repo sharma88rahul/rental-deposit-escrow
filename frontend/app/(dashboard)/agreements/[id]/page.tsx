@@ -2,41 +2,73 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  FileText,
   Lock,
   User,
   MapPin,
   Calendar,
   AlertTriangle,
-  History,
   CheckCircle,
   Gavel,
   Coins,
+  Edit3,
+  XCircle,
 } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { useAgreements, useAgreementDetails } from "@/hooks/useAgreements";
+import { editAgreementSchema } from "@/utils/validation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { PageLoader } from "@/components/ui/loader";
+import { AgreementTimeline } from "@/components/agreement/agreement-timeline";
 import { siteConfig } from "@/config/site";
-import { AgreementStatus } from "@/types";
 
 export default function AgreementDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const agreementId = parseInt(params.id as string);
-  const { agreements, updateAgreementStatus, requestRefund, addTransaction, addActivity } = useStore();
 
+  // React Query Operations
+  const { data: agreement, isLoading } = useAgreementDetails(agreementId);
+  const {
+    acceptAgreementMutation,
+    proposeRefundMutation,
+    resolveDisputeMutation,
+    cancelAgreementMutation,
+    editAgreementMutation,
+  } = useAgreements();
+
+  // Modal UI States
   const [isRefundOpen, setIsRefundOpen] = React.useState(false);
   const [isDisputeOpen, setIsDisputeOpen] = React.useState(false);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [refundInput, setRefundInput] = React.useState("");
   const [disputeInput, setDisputeInput] = React.useState("");
-  const [isLoading, setIsLoading] = React.useState(false);
 
-  const agreement = agreements.find((a) => a.id === agreementId);
+  // Edit Draft Form States
+  const [editTitle, setEditTitle] = React.useState("");
+  const [editAddress, setEditAddress] = React.useState("");
+  const [editAmount, setEditAmount] = React.useState("");
+  const [editErrors, setEditErrors] = React.useState<Record<string, string>>({});
+
+  // Initialize edit fields when draft modal opens
+  React.useEffect(() => {
+    if (agreement && isEditOpen) {
+      const frameId = requestAnimationFrame(() => {
+        setEditTitle(agreement.title || "");
+        setEditAddress(agreement.propertyAddress || "");
+        setEditAmount(agreement.depositAmount || "");
+        setEditErrors({});
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [agreement, isEditOpen]);
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   if (!agreement) {
     return (
@@ -50,118 +82,86 @@ export default function AgreementDetailsPage() {
     );
   }
 
-  // Helper to check what steps are completed
-  const getStepStatus = (step: number) => {
-    const statusMap: Record<AgreementStatus, number> = {
-      Draft: 0,
-      Created: 1,
-      Accepted: 2,
-      DepositLocked: 3,
-      LeaseActive: 4,
-      RefundRequested: 5,
-      Approved: 6,
-      DisputeRaised: 6,
-      Resolved: 7,
-      FundsReleased: 8,
-    };
-    
-    const currentStep = statusMap[agreement.status] || 0;
-    if (currentStep >= step) return "complete";
-    if (currentStep + 1 === step) return "active";
-    return "upcoming";
+  const handleAccept = async () => {
+    try {
+      await acceptAgreementMutation.mutateAsync(agreementId);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const simulateAction = (actionName: string, transitionTo: AgreementStatus, detailsMsg: string, callback?: () => void) => {
-    setIsLoading(true);
-    setTimeout(() => {
-      if (callback) {
-        callback();
-      } else {
-        updateAgreementStatus(agreementId, transitionTo);
-      }
-      
-      // Add Mock Transaction
-      addTransaction({
-        hash: Math.random().toString(36).substring(2, 10) + "..." + Math.random().toString(36).substring(2, 6),
-        type: actionName,
-        status: "Confirmed",
-        fee: "0.00014 XLM",
-        agreementId,
-        walletUsed: "GBTR5R5P...TENA",
+  const handleCancelDraft = async () => {
+    try {
+      await cancelAgreementMutation.mutateAsync(agreementId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditErrors({});
+
+    const validation = editAgreementSchema.safeParse({
+      title: editTitle,
+      propertyAddress: editAddress,
+      depositAmount: editAmount,
+    });
+
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.issues.forEach((issue) => {
+        if (issue.path.length > 0) {
+          errors[issue.path[0].toString()] = issue.message;
+        }
       });
+      setEditErrors(errors);
+      return;
+    }
 
-      // Add Activity Event
-      addActivity({
-        type: transitionTo === "DisputeRaised" ? "DisputeRaised" : "FundsReleased",
-        details: detailsMsg,
-        txHash: "tx-" + Math.random().toString(36).substring(2, 8),
+    try {
+      await editAgreementMutation.mutateAsync({
+        id: agreementId,
+        title: editTitle,
+        propertyAddress: editAddress,
+        depositAmount: editAmount,
       });
-
-      setIsLoading(false);
-      setIsRefundOpen(false);
-      setIsDisputeOpen(false);
-    }, 1500);
+      setIsEditOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleAccept = () => {
-    simulateAction(
-      "Accept Agreement",
-      "Accepted",
-      `Tenant accepted the agreement terms (Agreement #${agreementId})`
-    );
-  };
-
-  const handleLock = () => {
-    simulateAction(
-      "Lock Deposit",
-      "LeaseActive",
-      `Tenant locked ${agreement.depositAmount} USDC and activated the lease (Agreement #${agreementId})`
-    );
-  };
-
-  const handleRefundSubmit = (e: React.FormEvent) => {
+  const handleRefundSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundInput || parseFloat(refundInput) < 0 || parseFloat(refundInput) > parseFloat(agreement.depositAmount)) {
       return;
     }
-    simulateAction(
-      "Propose Refund",
-      "RefundRequested",
-      `Landlord proposed split: refund ${refundInput} USDC to Tenant (Agreement #${agreementId})`,
-      () => requestRefund(agreementId, refundInput)
-    );
+    try {
+      await proposeRefundMutation.mutateAsync({
+        id: agreementId,
+        refundAmount: refundInput,
+      });
+      setIsRefundOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleTenantApprove = () => {
-    simulateAction(
-      "Approve Release",
-      "FundsReleased",
-      `Tenant approved the proposed release split. Funds disbursed. (Agreement #${agreementId})`
-    );
-  };
-
-  const handleTenantDispute = () => {
-    simulateAction(
-      "Raise Dispute",
-      "DisputeRaised",
-      `Tenant disputed the proposed refund amount. Raised to Arbitration. (Agreement #${agreementId})`
-    );
-  };
-
-  const handleArbitrationSubmit = (e: React.FormEvent) => {
+  const handleArbitrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeInput || parseFloat(disputeInput) < 0 || parseFloat(disputeInput) > parseFloat(agreement.depositAmount)) {
       return;
     }
-    simulateAction(
-      "Resolve Dispute",
-      "FundsReleased",
-      `Arbitrator resolved dispute for Agreement #${agreementId}. Split: ${disputeInput} USDC to Tenant.`,
-      () => {
-        requestRefund(agreementId, disputeInput);
-        updateAgreementStatus(agreementId, "FundsReleased");
-      }
-    );
+    try {
+      await resolveDisputeMutation.mutateAsync({
+        id: agreementId,
+        refundAmount: disputeInput,
+      });
+      setIsDisputeOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -249,7 +249,7 @@ export default function AgreementDetailsPage() {
                 </div>
               </div>
 
-              {/* Proposed Splits (Show if RefundRequested) */}
+              {/* Proposed Splits */}
               {agreement.status === "RefundRequested" && (
                 <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 space-y-2">
                   <h4 className="font-semibold text-amber-500 flex items-center gap-1.5 text-sm">
@@ -272,40 +272,37 @@ export default function AgreementDetailsPage() {
               )}
             </CardContent>
             
-            {/* Context-based Interactive Simulation Actions */}
+            {/* Interactive Simulation Actions */}
             <CardFooter className="bg-secondary/10 border-t border-border/40 p-6 flex justify-end gap-3 flex-wrap">
+              {/* Draft Actions */}
               {agreement.status === "Created" && (
-                <Button onClick={handleAccept} isLoading={isLoading}>
-                  Accept Terms (Tenant Action)
-                </Button>
-              )}
-
-              {agreement.status === "Accepted" && (
-                <Button onClick={handleLock} isLoading={isLoading}>
-                  Lock Deposit & Activate Lease (Tenant Action)
-                </Button>
-              )}
-
-              {agreement.status === "LeaseActive" && (
-                <Button onClick={() => setIsRefundOpen(true)} isLoading={isLoading}>
-                  Propose Refund Release (Landlord Action)
-                </Button>
-              )}
-
-              {agreement.status === "RefundRequested" && (
                 <>
-                  <Button variant="destructive" onClick={handleTenantDispute} isLoading={isLoading}>
-                    Raise Dispute
+                  <Button variant="outline" onClick={() => setIsEditOpen(true)} className="flex items-center space-x-1.5">
+                    <Edit3 className="h-4 w-4" />
+                    <span>Edit Draft</span>
                   </Button>
-                  <Button onClick={handleTenantApprove} isLoading={isLoading}>
-                    Approve Release
+                  <Button variant="destructive" onClick={handleCancelDraft} isLoading={cancelAgreementMutation.isPending} className="flex items-center space-x-1.5">
+                    <XCircle className="h-4 w-4" />
+                    <span>Cancel Agreement</span>
+                  </Button>
+                  <Button onClick={handleAccept} isLoading={acceptAgreementMutation.isPending} className="flex items-center space-x-1.5">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Accept Terms</span>
                   </Button>
                 </>
               )}
 
+              {agreement.status === "LeaseActive" && (
+                <Button onClick={() => setIsRefundOpen(true)} className="flex items-center space-x-1.5">
+                  <Coins className="h-4 w-4" />
+                  <span>Propose Refund Split</span>
+                </Button>
+              )}
+
               {agreement.status === "DisputeRaised" && (
-                <Button onClick={() => setIsDisputeOpen(true)} isLoading={isLoading}>
-                  Resolve Dispute (Arbitrator Action)
+                <Button onClick={() => setIsDisputeOpen(true)} className="flex items-center space-x-1.5">
+                  <Gavel className="h-4 w-4" />
+                  <span>Arbitrate Dispute</span>
                 </Button>
               )}
             </CardFooter>
@@ -319,43 +316,14 @@ export default function AgreementDetailsPage() {
               <CardTitle>Lifecycle Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60">
-                {[
-                  { step: 1, title: "Agreement Created", desc: "Contract metadata drafted on Stellar." },
-                  { step: 2, title: "Agreement Accepted", desc: "Tenant signs matching the landlord specifications." },
-                  { step: 4, title: "Deposit Vaulted & Active", desc: "Escrow secures funds, activating the lease." },
-                  { step: 5, title: "Refund Proposed", desc: "Landlord requests splits for refund/deductions." },
-                  { step: 8, title: "Funds Disbursed", desc: "Escrow splits released automatically. Lease complete." }
-                ].map((s) => {
-                  const status = getStepStatus(s.step);
-                  return (
-                    <div key={s.step} className="flex items-start space-x-3 text-sm relative">
-                      <div className={`z-10 flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${
-                        status === "complete"
-                          ? "bg-primary border-primary text-primary-foreground"
-                          : status === "active"
-                          ? "bg-secondary border-primary text-primary animate-pulse font-bold"
-                          : "bg-secondary border-border text-muted-foreground"
-                      }`}>
-                        {status === "complete" ? <CheckCircle className="h-4.5 w-4.5" /> : s.step}
-                      </div>
-                      <div className="flex-1 pt-1.5">
-                        <h4 className={`font-semibold ${status === "upcoming" ? "text-muted-foreground" : "text-foreground"}`}>
-                          {s.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">{s.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <AgreementTimeline status={agreement.status} createdAt={agreement.createdAt || ""} />
             </CardContent>
           </Card>
         </div>
 
       </div>
 
-      {/* Dialog: Propose Refund (Landlord) */}
+      {/* Dialog: Propose Refund */}
       <Dialog isOpen={isRefundOpen} onClose={() => setIsRefundOpen(false)} title="Propose Security Deposit Split">
         <form onSubmit={handleRefundSubmit} className="space-y-4">
           <div className="space-y-1.5">
@@ -368,24 +336,26 @@ export default function AgreementDetailsPage() {
               required
               className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-muted-foreground">
-              The remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(refundInput) || 0)} USDC) will be disbursed to your wallet as deduction.
+            <p className="text-xs text-muted-foreground mt-1">
+              The remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(refundInput) || 0)} USDC) will be disbursed to the landlord.
             </p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setIsRefundOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Submit Propose</Button>
+            <Button type="submit" isLoading={proposeRefundMutation.isPending}>
+              Submit Proposal
+            </Button>
           </div>
         </form>
       </Dialog>
 
-      {/* Dialog: Dispute Resolution (Arbitrator) */}
+      {/* Dialog: Dispute Resolution */}
       <Dialog isOpen={isDisputeOpen} onClose={() => setIsDisputeOpen(false)} title="Arbitration Resolution Split">
         <form onSubmit={handleArbitrationSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">Arbitrator Refund Allocation to Tenant (USDC)</label>
+            <label className="text-sm font-semibold">Tenant Refund Allocation (USDC)</label>
             <input
               type="number"
               placeholder={`Max ${agreement.depositAmount}`}
@@ -394,17 +364,64 @@ export default function AgreementDetailsPage() {
               required
               className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-muted-foreground">
-              Submit the legally binding split: {disputeInput || 0} USDC to Tenant, and {parseFloat(agreement.depositAmount) - (parseFloat(disputeInput) || 0)} USDC to Landlord.
+            <p className="text-xs text-muted-foreground mt-1">
+              Submit the binding split: {disputeInput || 0} USDC to Tenant, and {parseFloat(agreement.depositAmount) - (parseFloat(disputeInput) || 0)} USDC to Landlord.
             </p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" type="button" onClick={() => setIsDisputeOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="flex items-center space-x-2">
+            <Button type="submit" isLoading={resolveDisputeMutation.isPending} className="flex items-center space-x-2">
               <Gavel className="h-4.5 w-4.5" />
               <span>Issue Settlement</span>
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Dialog: Edit Draft */}
+      <Dialog isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Edit Agreement Draft">
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">Agreement Title *</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            {editErrors.title && <p className="text-xs text-red-500">{editErrors.title}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">Property Location Address *</label>
+            <input
+              type="text"
+              value={editAddress}
+              onChange={(e) => setEditAddress(e.target.value)}
+              className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            {editErrors.propertyAddress && <p className="text-xs text-red-500">{editErrors.propertyAddress}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold">Security Deposit (USDC) *</label>
+            <input
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            {editErrors.depositAmount && <p className="text-xs text-red-500">{editErrors.depositAmount}</p>}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" type="button" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={editAgreementMutation.isPending}>
+              Save Changes
             </Button>
           </div>
         </form>
