@@ -1,35 +1,3 @@
-// Mock wallet kit modules
-jest.mock("@creit-tech/stellar-wallets-kit", () => ({
-  Networks: {
-    TESTNET: "testnet",
-    PUBLIC: "public",
-  },
-}));
-
-// Mock Stellar SDK modules to isolate contract tests from on-chain configurations
-jest.mock("@stellar/stellar-sdk", () => {
-  return {
-    Address: {
-      fromString: jest.fn().mockImplementation(() => ({
-        toScAddress: jest.fn(),
-      })),
-    },
-    Contract: jest.fn().mockImplementation(() => ({
-      call: jest.fn().mockReturnValue({}),
-    })),
-    xdr: {
-      ScVal: {
-        scvAddress: jest.fn(),
-        scvSymbol: jest.fn(),
-        scvU32: jest.fn(),
-        scvString: jest.fn(),
-      },
-    },
-    nativeToScVal: jest.fn(),
-    scValToNative: jest.fn(),
-  };
-});
-
 import { EscrowService } from "../services/escrow";
 import { useEscrowStore } from "../store/useEscrowStore";
 import { useStore } from "../store/useStore";

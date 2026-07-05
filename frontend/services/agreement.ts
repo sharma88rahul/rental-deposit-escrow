@@ -1,4 +1,5 @@
 import { ContractClient } from "./contract-client";
+import { SorobanClient } from "./soroban-client";
 import { useStore } from "@/store/useStore";
 import { useWalletStore } from "@/store/useWalletStore";
 import { Agreement, AgreementStatus } from "@/types";
@@ -10,30 +11,77 @@ export class AgreementService {
    * Fetch all agreements from store cache (in-memory simulation)
    */
   public static async fetchAgreements(): Promise<Agreement[]> {
-    return new Promise((resolve) => {
-      // Simulate RPC fetch latency
-      setTimeout(() => {
-        const state = useStore.getState();
-        resolve(state.agreements);
-      }, 500);
-    });
+    try {
+      const counter = await SorobanClient.getAgreementCounter();
+      const agreements: Agreement[] = [];
+
+      for (let i = 1; i <= counter; i++) {
+        const item = await SorobanClient.getAgreement(i) as any;
+        if (item) {
+          agreements.push({
+            id: item.id,
+            landlord: item.landlord,
+            tenant: item.tenant,
+            token: item.token,
+            depositAmount: item.deposit_amount.toString(),
+            duration: item.duration,
+            status: item.status as AgreementStatus,
+            metadataHash: item.metadata_hash,
+            refundRequestedAmount: item.refund_requested_amount.toString(),
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      if (agreements.length > 0) {
+        useStore.setState({ agreements });
+        return agreements;
+      }
+    } catch (err) {
+      console.warn("Falling back to local agreements store cache due to:", err);
+    }
+
+    return useStore.getState().agreements;
   }
 
   /**
    * Fetch single agreement details
    */
   public static async getAgreementDetails(id: number): Promise<Agreement | null> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const state = useStore.getState();
-        const agreement = state.agreements.find((a) => a.id === id);
-        if (!agreement) {
-          reject(new Error(`Agreement #${id} not found.`));
+    try {
+      const item = await SorobanClient.getAgreement(id) as any;
+      if (item) {
+        const agreement: Agreement = {
+          id: item.id,
+          landlord: item.landlord,
+          tenant: item.tenant,
+          token: item.token,
+          depositAmount: item.deposit_amount.toString(),
+          duration: item.duration,
+          status: item.status as AgreementStatus,
+          metadataHash: item.metadata_hash,
+          refundRequestedAmount: item.refund_requested_amount.toString(),
+          createdAt: new Date().toISOString(),
+        };
+
+        const currentList = useStore.getState().agreements;
+        const exists = currentList.find((a) => a.id === id);
+        if (exists) {
+          useStore.setState({
+            agreements: currentList.map((a) => (a.id === id ? agreement : a)),
+          });
         } else {
-          resolve(agreement);
+          useStore.setState({
+            agreements: [agreement, ...currentList],
+          });
         }
-      }, 300);
-    });
+        return agreement;
+      }
+    } catch (err) {
+      console.warn(`Could not read agreement #${id} from contract, using fallback cache:`, err);
+    }
+
+    return useStore.getState().agreements.find((a) => a.id === id) || null;
   }
 
   /**
