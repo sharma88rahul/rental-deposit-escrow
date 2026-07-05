@@ -6,9 +6,7 @@ use types::AgreementStatus;
 
 // Escrow contract registration helper
 mod escrow_contract {
-    soroban_sdk::contractimport!(
-        file = "../target/wasm32-unknown-unknown/release/escrow.wasm"
-    );
+    soroban_sdk::contractimport!(file = "../target/wasm32-unknown-unknown/release/escrow.wasm");
 }
 
 #[test]
@@ -36,7 +34,9 @@ fn test_rental_lifecycle_success() {
 
     // Register a mock token
     let token_admin = Address::generate(&env);
-    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_id = env
+        .register_stellar_asset_contract_v2(token_admin)
+        .address();
     let token_client = token::Client::new(&env, &token_id);
     let sac_client = token::StellarAssetClient::new(&env, &token_id);
 
@@ -73,7 +73,7 @@ fn test_rental_lifecycle_success() {
 
     // 3. Lock Deposit
     agreement_client.lock_deposit(&tenant, &agreement_id);
-    
+
     // Verify funds were transferred to Escrow
     assert_eq!(token_client.balance(&tenant), 0);
     assert_eq!(token_client.balance(&escrow_contract_id), deposit_amount);
@@ -84,7 +84,7 @@ fn test_rental_lifecycle_success() {
     // 4. Request Refund (Landlord proposes 800 refund to tenant, 200 deduction for landlord)
     let refund_amount = 800i128;
     agreement_client.request_refund(&landlord, &agreement_id, &refund_amount);
-    
+
     let agreement = agreement_client.get_agreement(&agreement_id);
     assert_eq!(agreement.status, AgreementStatus::RefundRequested);
     assert_eq!(agreement.refund_requested_amount, refund_amount);
@@ -94,7 +94,10 @@ fn test_rental_lifecycle_success() {
 
     // Verify funds distribution
     assert_eq!(token_client.balance(&tenant), refund_amount); // 800 USDC
-    assert_eq!(token_client.balance(&landlord), deposit_amount - refund_amount); // 200 USDC
+    assert_eq!(
+        token_client.balance(&landlord),
+        deposit_amount - refund_amount
+    ); // 200 USDC
     assert_eq!(token_client.balance(&escrow_contract_id), 0);
 
     let agreement = agreement_client.get_agreement(&agreement_id);
@@ -121,7 +124,9 @@ fn test_rental_lifecycle_dispute_resolved() {
     escrow_client.initialize(&admin, &agreement_contract_id);
 
     let token_admin = Address::generate(&env);
-    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_id = env
+        .register_stellar_asset_contract_v2(token_admin)
+        .address();
     let token_client = token::Client::new(&env, &token_id);
     let sac_client = token::StellarAssetClient::new(&env, &token_id);
 
@@ -156,7 +161,10 @@ fn test_rental_lifecycle_dispute_resolved() {
 
     // Verify token transfers
     assert_eq!(token_client.balance(&tenant), resolve_refund); // 1200
-    assert_eq!(token_client.balance(&landlord), deposit_amount - resolve_refund); // 800
+    assert_eq!(
+        token_client.balance(&landlord),
+        deposit_amount - resolve_refund
+    ); // 800
     assert_eq!(token_client.balance(&escrow_contract_id), 0);
 
     let agreement = agreement_client.get_agreement(&agreement_id);
@@ -184,7 +192,9 @@ fn test_unauthorized_actions() {
     escrow_client.initialize(&admin, &agreement_contract_id);
 
     let token_admin = Address::generate(&env);
-    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_id = env
+        .register_stellar_asset_contract_v2(token_admin)
+        .address();
     let sac_client = token::StellarAssetClient::new(&env, &token_id);
 
     let deposit_amount = 1500i128;
@@ -252,14 +262,11 @@ fn test_escrow_access_control() {
     escrow_client.initialize(&admin, &agreement_contract_id);
 
     let token_admin = Address::generate(&env);
-    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_id = env
+        .register_stellar_asset_contract_v2(token_admin)
+        .address();
 
     // Try calling Escrow lock_deposit directly from attacker (not the registered agreement contract)
-    let result = escrow_client.try_lock_deposit(
-        &1,
-        &attacker,
-        &token_id,
-        &1000,
-    );
+    let result = escrow_client.try_lock_deposit(&1, &attacker, &token_id, &1000);
     assert!(result.is_err());
 }

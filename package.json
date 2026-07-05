@@ -1,0 +1,20 @@
+{
+  "name": "rentsure-workspace",
+  "version": "1.0.0",
+  "description": "RentSure Decentralized Rental Deposit Escrow workspace",
+  "private": true,
+  "scripts": {
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:test": "npm --prefix frontend run test",
+    "frontend:lint": "npm --prefix frontend run lint",
+    "contract:build": "cargo build --target wasm32-unknown-unknown --release",
+    "contract:test": "cargo test",
+    "contract:fmt": "cargo fmt -- --check",
+    "contract:clippy": "cargo clippy --all-targets -- -D warnings",
+    "workspace:build": "npm run contract:build && npm run frontend:build",
+    "workspace:test": "npm run contract:test && npm run frontend:test",
+    "workspace:lint": "npm run contract:fmt && npm run contract:clippy && npm run frontend:lint",
+    "workspace:verify": "npm run workspace:lint && npm run workspace:test && npm run workspace:build"
+  }
+}

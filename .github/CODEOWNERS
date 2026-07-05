@@ -1,0 +1,11 @@
+# Global owners for all files
+*       @sharma88rahul
+
+# Smart contract specialists
+/contracts/  @sharma88rahul
+
+# Frontend engineers
+/frontend/   @sharma88rahul
+
+# Workflows configurations
+/.github/workflows/ @sharma88rahul

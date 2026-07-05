@@ -1,0 +1,56 @@
+name: Rust Smart Contract CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'contracts/**'
+      - 'Cargo.toml'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'contracts/**'
+      - 'Cargo.toml'
+      - '.github/workflows/rust-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - name: Setup Cargo Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy Linter Check
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Tests
+        run: cargo test --workspace
+
+      - name: Compile WASM Targets
+        run: cargo build --target wasm32-unknown-unknown --release

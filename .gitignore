@@ -1,37 +1,47 @@
-# Rust
-target/
+# --- Rust & Cargo ---
+/target/
 **/target/
-
-# Cargo
 Cargo.lock
 
-# Node
-node_modules/
-.next/
-out/
+# --- Node & Next.js ---
+/node_modules/
+**/node_modules/
+/.next/
+**/out/
+**/dist/
 
-# Logs
-*.log
+# --- Coverage & Tests ---
+**/coverage/
+**/jest-cache/
+.nyc_output
 
-# Environment
-.env
-.env.local
-
-# VS Code
-.vscode/
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-
-# Build artifacts
-dist/
-coverage/
-
-# Generated WASM
+# --- Soroban & Stellar Tooling ---
+.soroban/
+**/bindings/
+/frontend/contracts/*/
 *.wasm
 
-# Temporary files
-*.tmp
+# --- Logs & Telemetry ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/cache/
+
+# --- Environment Configurations ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- IDEs & System Files ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
