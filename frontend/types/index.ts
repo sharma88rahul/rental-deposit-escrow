@@ -66,4 +66,5 @@ export interface ActivityEvent {
   timestamp: string;
   details: string;
   txHash?: string;
+  agreementId?: number;
 }
