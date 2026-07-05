@@ -15,8 +15,10 @@ import {
   Coins,
   Edit3,
   XCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { useAgreements, useAgreementDetails } from "@/hooks/useAgreements";
+import { useEscrow } from "@/hooks/useEscrow";
 import { editAgreementSchema } from "@/utils/validation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,21 +32,32 @@ export default function AgreementDetailsPage() {
   const params = useParams();
   const agreementId = parseInt(params.id as string);
 
-  // React Query Operations
+  // React Query Operations for Agreements and Escrows
   const { data: agreement, isLoading } = useAgreementDetails(agreementId);
   const {
     acceptAgreementMutation,
-    proposeRefundMutation,
-    resolveDisputeMutation,
     cancelAgreementMutation,
     editAgreementMutation,
   } = useAgreements();
 
+  const {
+    escrowsQuery,
+    lockDepositMutation,
+    releaseDepositFullyMutation,
+    requestDeductionMutation,
+    approveDeductionMutation,
+    raiseDisputeMutation,
+    resolveDisputeMutation: resolveEscrowDisputeMutation,
+  } = useEscrow();
+
+  const escrows = escrowsQuery.data || [];
+  const escrow = escrows.find((e) => e.agreementId === agreementId);
+
   // Modal UI States
-  const [isRefundOpen, setIsRefundOpen] = React.useState(false);
+  const [isDeductOpen, setIsDeductOpen] = React.useState(false);
   const [isDisputeOpen, setIsDisputeOpen] = React.useState(false);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
-  const [refundInput, setRefundInput] = React.useState("");
+  const [deductInput, setDeductInput] = React.useState("");
   const [disputeInput, setDisputeInput] = React.useState("");
 
   // Edit Draft Form States
@@ -98,6 +111,22 @@ export default function AgreementDetailsPage() {
     }
   };
 
+  const handleLockDeposit = async () => {
+    try {
+      await lockDepositMutation.mutateAsync(agreementId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleReleaseFull = async () => {
+    try {
+      await releaseDepositFullyMutation.mutateAsync(agreementId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditErrors({});
@@ -132,17 +161,36 @@ export default function AgreementDetailsPage() {
     }
   };
 
-  const handleRefundSubmit = async (e: React.FormEvent) => {
+  const handleDeductionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!refundInput || parseFloat(refundInput) < 0 || parseFloat(refundInput) > parseFloat(agreement.depositAmount)) {
+    if (!deductInput || parseFloat(deductInput) < 0 || parseFloat(deductInput) > parseFloat(agreement.depositAmount)) {
       return;
     }
     try {
-      await proposeRefundMutation.mutateAsync({
-        id: agreementId,
-        refundAmount: refundInput,
+      await requestDeductionMutation.mutateAsync({
+        agreementId,
+        deductionAmount: deductInput,
       });
-      setIsRefundOpen(false);
+      setIsDeductOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleApproveDeductionSplit = async () => {
+    try {
+      await approveDeductionMutation.mutateAsync({
+        agreementId,
+        tenantRefundAmount: agreement.refundRequestedAmount,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRaiseDispute = async () => {
+    try {
+      await raiseDisputeMutation.mutateAsync(agreementId);
     } catch (err) {
       console.error(err);
     }
@@ -154,9 +202,9 @@ export default function AgreementDetailsPage() {
       return;
     }
     try {
-      await resolveDisputeMutation.mutateAsync({
-        id: agreementId,
-        refundAmount: disputeInput,
+      await resolveEscrowDisputeMutation.mutateAsync({
+        agreementId,
+        tenantRefundAmount: disputeInput,
       });
       setIsDisputeOpen(false);
     } catch (err) {
@@ -249,6 +297,45 @@ export default function AgreementDetailsPage() {
                 </div>
               </div>
 
+              {/* Escrow Contract Vault Ledger Status */}
+              {escrow && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4.5 space-y-3">
+                  <h4 className="font-bold text-primary flex items-center gap-2 text-sm">
+                    <ShieldCheck className="h-4.5 w-4.5 shrink-0" />
+                    <span>Escrow Ledger Audit Box</span>
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block">Escrow ID</span>
+                      <span className="font-semibold text-foreground">#{escrow.escrowId}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Current Holder</span>
+                      <span className="font-semibold text-foreground">{escrow.currentHolder}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Remaining Balance</span>
+                      <span className="font-bold text-amber-500">{escrow.remainingBalance} USDC</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block">Released Split</span>
+                      <span className="font-bold text-primary">{escrow.releasedAmount} USDC</span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground pt-2.5 border-t border-primary/10 flex items-center justify-between">
+                    <span>Locked Date: {escrow.lockedAt ? new Date(escrow.lockedAt).toLocaleString() : "Awaiting Deposit"}</span>
+                    <a
+                      href={`https://stellar.expert/explorer/testnet/tx/${escrow.escrowId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-semibold"
+                    >
+                      View on Stellar.expert
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {/* Proposed Splits */}
               {agreement.status === "RefundRequested" && (
                 <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 space-y-2">
@@ -272,7 +359,7 @@ export default function AgreementDetailsPage() {
               )}
             </CardContent>
             
-            {/* Interactive Simulation Actions */}
+            {/* Interactive Escrow State Machine Actions */}
             <CardFooter className="bg-secondary/10 border-t border-border/40 p-6 flex justify-end gap-3 flex-wrap">
               {/* Draft Actions */}
               {agreement.status === "Created" && (
@@ -292,17 +379,47 @@ export default function AgreementDetailsPage() {
                 </>
               )}
 
-              {agreement.status === "LeaseActive" && (
-                <Button onClick={() => setIsRefundOpen(true)} className="flex items-center space-x-1.5">
+              {/* Accepted (Unfunded) -> Tenant locks deposit */}
+              {agreement.status === "Accepted" && (
+                <Button onClick={handleLockDeposit} isLoading={lockDepositMutation.isPending} className="flex items-center space-x-1.5">
                   <Coins className="h-4 w-4" />
-                  <span>Propose Refund Split</span>
+                  <span>Lock Security Deposit</span>
                 </Button>
               )}
 
+              {/* Active Lease -> Landlord can Propose deduction or Release fully */}
+              {agreement.status === "LeaseActive" && (
+                <>
+                  <Button variant="outline" onClick={handleReleaseFull} isLoading={releaseDepositFullyMutation.isPending} className="flex items-center space-x-1.5">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>Release Full Refund</span>
+                  </Button>
+                  <Button onClick={() => setIsDeductOpen(true)} className="flex items-center space-x-1.5">
+                    <Coins className="h-4 w-4" />
+                    <span>Propose Deduction</span>
+                  </Button>
+                </>
+              )}
+
+              {/* Refund proposed -> Tenant approves split or rejects / raises dispute */}
+              {agreement.status === "RefundRequested" && (
+                <>
+                  <Button variant="destructive" onClick={handleRaiseDispute} isLoading={raiseDisputeMutation.isPending} className="flex items-center space-x-1.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Raise Dispute</span>
+                  </Button>
+                  <Button onClick={handleApproveDeductionSplit} isLoading={approveDeductionMutation.isPending} className="flex items-center space-x-1.5">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Approve Refund Split</span>
+                  </Button>
+                </>
+              )}
+
+              {/* Dispute raised -> Arbitrator resolves */}
               {agreement.status === "DisputeRaised" && (
                 <Button onClick={() => setIsDisputeOpen(true)} className="flex items-center space-x-1.5">
                   <Gavel className="h-4 w-4" />
-                  <span>Arbitrate Dispute</span>
+                  <span>Resolve Dispute (Arbitrator)</span>
                 </Button>
               )}
             </CardFooter>
@@ -323,29 +440,29 @@ export default function AgreementDetailsPage() {
 
       </div>
 
-      {/* Dialog: Propose Refund */}
-      <Dialog isOpen={isRefundOpen} onClose={() => setIsRefundOpen(false)} title="Propose Security Deposit Split">
-        <form onSubmit={handleRefundSubmit} className="space-y-4">
+      {/* Dialog: Propose Deduction */}
+      <Dialog isOpen={isDeductOpen} onClose={() => setIsDeductOpen(false)} title="Propose Deduction Split">
+        <form onSubmit={handleDeductionSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">Tenant Refund Amount (USDC)</label>
+            <label className="text-sm font-semibold">Tenant Refund Allocation (USDC)</label>
             <input
               type="number"
               placeholder={`Max ${agreement.depositAmount}`}
-              value={refundInput}
-              onChange={(e) => setRefundInput(e.target.value)}
+              value={deductInput}
+              onChange={(e) => setDeductInput(e.target.value)}
               required
               className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              The remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(refundInput) || 0)} USDC) will be disbursed to the landlord.
+              Tenant receives {deductInput || 0} USDC. Landlord retains the remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(deductInput) || 0)} USDC) for repairs or unpaid rent.
             </p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" type="button" onClick={() => setIsRefundOpen(false)}>
+            <Button variant="outline" type="button" onClick={() => setIsDeductOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={proposeRefundMutation.isPending}>
-              Submit Proposal
+            <Button type="submit" isLoading={requestDeductionMutation.isPending}>
+              Propose Split
             </Button>
           </div>
         </form>
@@ -372,7 +489,7 @@ export default function AgreementDetailsPage() {
             <Button variant="outline" type="button" onClick={() => setIsDisputeOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={resolveDisputeMutation.isPending} className="flex items-center space-x-2">
+            <Button type="submit" isLoading={resolveEscrowDisputeMutation.isPending} className="flex items-center space-x-2">
               <Gavel className="h-4.5 w-4.5" />
               <span>Issue Settlement</span>
             </Button>
