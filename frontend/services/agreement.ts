@@ -1,5 +1,6 @@
 import { ContractClient } from "./contract-client";
 import { useStore } from "@/store/useStore";
+import { useWalletStore } from "@/store/useWalletStore";
 import { Agreement, AgreementStatus } from "@/types";
 
 const client = new ContractClient();
@@ -48,6 +49,11 @@ export class AgreementService {
     metadataHash: string;
   }): Promise<number> {
     // Validate wallets
+    const walletState = useWalletStore.getState();
+    if (!walletState.connected || !walletState.walletAddress) {
+      throw new Error("Wallet not connected");
+    }
+
     if (!params.tenant.startsWith("G") || params.tenant.length !== 56) {
       throw new Error("Invalid tenant Stellar wallet address format.");
     }

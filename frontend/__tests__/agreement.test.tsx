@@ -34,9 +34,17 @@ import { createAgreementSchema } from "../utils/validation";
 import { AgreementService } from "../services/agreement";
 import { useStore } from "../store/useStore";
 import { useAgreementStore } from "../store/useAgreementStore";
+import { useWalletStore } from "../store/useWalletStore";
 
 describe("Rental Agreement Zod Validation & Service Tests", () => {
   beforeEach(() => {
+    // Seed wallet state
+    useWalletStore.setState({
+      connected: true,
+      walletAddress: "GD7K5R5P2H3C4V5B6N7M8Q9W0E1R2T3Y4U5I6O7P8A9S0D1F2G3H4J5K",
+      activeWallet: "freighter",
+    });
+
     // Reset Zustand data store
     useStore.setState({
       agreements: [
