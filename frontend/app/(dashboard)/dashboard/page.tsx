@@ -15,10 +15,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/store/useStore";
+import { useWalletStore } from "@/store/useWalletStore";
 import { siteConfig } from "@/config/site";
+import { AgreementService } from "@/services/agreement";
+import { EscrowService } from "@/services/escrow";
+import { SorobanClient } from "@/services/soroban-client";
 
 export default function DashboardPage() {
-  const { agreements, transactions, connected } = useStore();
+  const { agreements, transactions } = useStore();
+
+  React.useEffect(() => {
+    // Reload live agreements & escrows on mount
+    AgreementService.fetchAgreements();
+    EscrowService.fetchEscrows();
+
+    const walletState = useWalletStore.getState();
+    if (walletState.connected && walletState.walletAddress) {
+      SorobanClient.fetchHorizonTransactions(walletState.walletAddress).then((txs) => {
+        if (txs && txs.length > 0) {
+          useStore.setState({ transactions: txs });
+        }
+      });
+    }
+  }, []);
 
   // Compute metrics based on mock data
   const totalAgreements = agreements.length;

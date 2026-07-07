@@ -8,6 +8,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { siteConfig } from "@/config/site";
 import { toScVal } from "./contract-client";
+import { Transaction, TransactionStatus } from "@/types";
 
 const server = new rpc.Server(siteConfig.contracts.testnetRpcUrl);
 // Null account for simulation purposes
@@ -127,6 +128,41 @@ export class SorobanClient {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn("Could not fetch events from Soroban RPC:", msg);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch live account transaction history logs from Horizon
+   */
+  public static async fetchHorizonTransactions(publicKey: string): Promise<Transaction[]> {
+    try {
+      const res = await fetch(
+        `https://horizon-testnet.stellar.org/accounts/${publicKey}/transactions?limit=10&order=desc`
+      );
+      if (!res.ok) return [];
+      const data = await res.json() as {
+        _embedded?: {
+          records?: Array<{
+            hash: string;
+            memo?: string;
+            fee_charged: string;
+            source_account: string;
+            created_at: string;
+          }>;
+        };
+      };
+      const records = data._embedded?.records || [];
+      return records.map((r) => ({
+        hash: r.hash.substring(0, 10) + "..." + r.hash.substring(r.hash.length - 4),
+        type: r.memo || "Stellar Transaction",
+        status: "Confirmed" as TransactionStatus,
+        fee: `${(parseInt(r.fee_charged) / 10000000).toFixed(5)} XLM`,
+        timestamp: r.created_at,
+        walletUsed: r.source_account.substring(0, 8) + "..." + r.source_account.substring(r.source_account.length - 4),
+      }));
+    } catch (err) {
+      console.warn("Horizon transaction fetch failed:", err);
       return [];
     }
   }

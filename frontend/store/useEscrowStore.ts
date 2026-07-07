@@ -48,58 +48,7 @@ interface EscrowState {
   resetFilters: () => void;
 }
 
-// Polished mock escrow records reflecting active agreements
-const initialEscrows: EscrowDetails[] = [
-  {
-    escrowId: 8021,
-    agreementId: 1042,
-    title: "Vanguard Heights - Apt 402",
-    propertyAddress: "742 Evergreen Terrace, Springfield",
-    depositAmount: "1200",
-    releasedAmount: "0",
-    remainingBalance: "1200",
-    assetType: "USDC (CCFP...MX25)",
-    status: "LeaseActive",
-    landlord: "GD7K5R5P...LAND",
-    tenant: "GBTR5R5P...TENA",
-    currentHolder: "Escrow Contract",
-    lockedAt: "2026-06-15T13:45:00Z",
-    createdAt: "2026-06-15T12:00:00Z",
-  },
-  {
-    escrowId: 8020,
-    agreementId: 1041,
-    title: "Sunset Boulevard Condo",
-    propertyAddress: "1204 Sunset Blvd, Los Angeles",
-    depositAmount: "3000",
-    releasedAmount: "0",
-    remainingBalance: "3000",
-    assetType: "XLM (Native)",
-    status: "RefundRequested",
-    landlord: "GD7K5R5P...LAND",
-    tenant: "GC7P5R5P...TENB",
-    currentHolder: "Escrow Contract",
-    lockedAt: "2026-05-10T15:00:00Z",
-    createdAt: "2026-05-10T14:30:00Z",
-  },
-  {
-    escrowId: 8019,
-    agreementId: 1040,
-    title: "Tech Hub Studio Suite",
-    propertyAddress: "405 Innovation Way, San Francisco",
-    depositAmount: "1800",
-    releasedAmount: "1800",
-    remainingBalance: "0",
-    assetType: "USDC (CCFP...MX25)",
-    status: "FundsReleased",
-    landlord: "GA8P5R5P...LAND",
-    tenant: "GD7K5R5P...LAND",
-    currentHolder: "Tenant",
-    lockedAt: "2025-07-04T09:30:00Z",
-    disbursedAt: "2026-07-04T12:30:00Z",
-    createdAt: "2025-07-04T09:00:00Z",
-  },
-];
+const initialEscrows: EscrowDetails[] = [];
 
 export const useEscrowStore = create<EscrowState>((set) => ({
   selectedEscrowId: null,

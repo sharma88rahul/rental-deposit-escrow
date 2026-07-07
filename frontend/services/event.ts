@@ -8,9 +8,6 @@ export class EventService {
   private static pollTimer: NodeJS.Timeout | null = null;
   private static lastLedger = 0;
 
-  /**
-   * Listen for Soroban events (active RPC polling)
-   */
   public static startSubscription(): void {
     if (this.isSubscribed) return;
     this.isSubscribed = true;
@@ -28,17 +25,12 @@ export class EventService {
           try {
             await this.pollEvents(server);
           } catch (err) {
-            console.warn("RPC event poll failed, using simulation backup:", err);
-            this.generateMockBlockchainEvent(); // Fallback simulation
+            console.warn("RPC event poll failed:", err);
           }
         }, 6000);
       })
       .catch((err) => {
-        console.warn("Could not load initial ledger sequence, starting simulation:", err);
-        // Start backup simulator
-        this.pollTimer = setInterval(() => {
-          this.generateMockBlockchainEvent();
-        }, 8000);
+        console.warn("Could not load initial ledger sequence, Soroban events feed is currently unreachable:", err);
       });
   }
 
@@ -133,46 +125,4 @@ export class EventService {
     }
   }
 
-  /**
-   * Polished simulation generator yielding real-time activities during offline/dev mode
-   */
-  public static generateMockBlockchainEvent(): void {
-    const eventsList: Array<{ type: ActivityEvent["type"]; details: string }> = [
-      {
-        type: "AgreementCreated",
-        details: "New Agreement #1044 drafted for Penthouse Apt B by Landlord GD7K...LAND",
-      },
-      {
-        type: "AgreementAccepted",
-        details: "Tenant signed and accepted lease terms in Agreement #1044",
-      },
-      {
-        type: "DepositLocked",
-        details: "Tenant locked 1500 USDC deposit into Escrow Vault #8022",
-      },
-      {
-        type: "RefundRequested",
-        details: "Landlord requested split proposal on Escrow #8021: 1000 USDC refund to Tenant",
-      },
-      {
-        type: "DisputeRaised",
-        details: "Tenant raised a dispute objection split on Escrow #8020",
-      },
-    ];
-
-    const randomEvent = eventsList[Math.floor(Math.random() * eventsList.length)];
-    const txHash = "0x" + Math.random().toString(16).substring(2, 10) + "sim";
-    const agreementId = Math.floor(Math.random() * 50) + 1040;
-
-    const normalized: ActivityEvent = {
-      id: `sim-evt-${Math.random().toString(36).substring(2, 9)}`,
-      type: randomEvent.type,
-      timestamp: new Date().toISOString(),
-      details: randomEvent.details,
-      txHash,
-      agreementId,
-    };
-
-    useActivityStore.getState().addActivityEvent(normalized);
-  }
 }

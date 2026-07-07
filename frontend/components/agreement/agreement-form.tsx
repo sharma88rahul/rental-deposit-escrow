@@ -77,7 +77,7 @@ export function AgreementForm() {
         title,
         propertyAddress,
         tenant,
-        token: "USDC (CCFP...MX25)",
+        token: siteConfig.contracts.rentalAgreementId,
         depositAmount,
         duration: durationSeconds,
         metadataHash: "Qm" + Math.random().toString(36).substring(2, 15),

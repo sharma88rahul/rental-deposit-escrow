@@ -38,70 +38,8 @@ interface ActivityState {
   resetFilters: () => void;
 }
 
-// Polished mock transactions ledger reflecting history
-const initialTransactions: Transaction[] = [
-  {
-    hash: "0x89ab7cd67ef21a4de910b8923a1ef5d67ba9e021",
-    type: "Lock Escrow Deposit",
-    status: "Confirmed",
-    fee: "0.00025 XLM",
-    timestamp: "2026-06-15T13:45:00Z",
-    walletUsed: "GBTR5R5P...TENA",
-    agreementId: 1042,
-  },
-  {
-    hash: "0xd4e5f210d7ba9e021cf5d67ba9e021cf5d67ba9",
-    type: "Propose Escrow Split",
-    status: "Confirmed",
-    fee: "0.00014 XLM",
-    timestamp: "2026-07-04T10:15:00Z",
-    walletUsed: "GD7K5R5P...LAND",
-    agreementId: 1041,
-  },
-  {
-    hash: "0x3a4b7cd67ef21a4de910b8923a1ef5d67ba9e022",
-    type: "Approve Refund",
-    status: "Confirmed",
-    fee: "0.00012 XLM",
-    timestamp: "2026-07-04T12:30:00Z",
-    walletUsed: "GD7K5R5P...LAND",
-    agreementId: 1040,
-  },
-  {
-    hash: "0xf8g9h210d7ba9e021cf5d67ba9e021cf5d67ba9",
-    type: "Create Rental Agreement",
-    status: "Failed",
-    fee: "0.00008 XLM",
-    timestamp: "2026-07-05T09:00:00Z",
-    walletUsed: "GD7K5R5P...LAND",
-    agreementId: 1043,
-  },
-];
-
-// Initial activity events
-const initialActivities: ActivityEvent[] = [
-  {
-    id: "act-101",
-    type: "DepositLocked",
-    timestamp: "2026-06-15T13:45:00Z",
-    details: "Tenant locked 1200 USDC into the Escrow Vault (Agreement #1042)",
-    txHash: "0x89ab7cd67ef21a4de910b8923a1ef5d67ba9e021",
-  },
-  {
-    id: "act-102",
-    type: "DeductionRequested",
-    timestamp: "2026-07-04T10:15:00Z",
-    details: "Landlord requested 500 USDC split deduction in Escrow (Agreement #1041)",
-    txHash: "0xd4e5f210d7ba9e021cf5d67ba9e021cf5d67ba9",
-  },
-  {
-    id: "act-103",
-    type: "FundsReleased",
-    timestamp: "2026-07-04T12:30:00Z",
-    details: "Escrow splits released: 1800 USDC to Tenant (Agreement #1040)",
-    txHash: "0x3a4b7cd67ef21a4de910b8923a1ef5d67ba9e022",
-  },
-];
+const initialTransactions: Transaction[] = [];
+const initialActivities: ActivityEvent[] = [];
 
 export const useActivityStore = create<ActivityState>((set) => ({
   // Default values

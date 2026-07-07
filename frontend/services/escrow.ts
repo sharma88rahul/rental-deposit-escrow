@@ -2,10 +2,19 @@ import { ContractClient, toScVal } from "./contract-client";
 import { SorobanClient } from "./soroban-client";
 import { useEscrowStore, EscrowDetails } from "@/store/useEscrowStore";
 import { useStore } from "@/store/useStore";
-import { AgreementStatus } from "@/types";
 import { siteConfig } from "@/config/site";
 
 const client = new ContractClient();
+
+interface EscrowContractData {
+  agreement_id: number;
+  tenant: string;
+  landlord: string;
+  token_address?: string;
+  locked_amount: number | bigint;
+  released_amount: number | bigint;
+  is_locked: boolean;
+}
 
 export class EscrowService {
   /**
@@ -23,9 +32,10 @@ export class EscrowService {
           siteConfig.contracts.escrowId,
           "get_escrow",
           args
-        ) as any;
+        ) as EscrowContractData | null;
         if (item) {
           const agreement = useStore.getState().agreements.find((a) => a.id === i);
+          const remaining = BigInt(item.locked_amount) - BigInt(item.released_amount);
           escrows.push({
             escrowId: item.agreement_id,
             agreementId: item.agreement_id,
@@ -37,7 +47,7 @@ export class EscrowService {
             assetType: item.token_address || "USDC",
             depositAmount: item.locked_amount.toString(),
             releasedAmount: item.released_amount.toString(),
-            remainingBalance: (item.locked_amount - item.released_amount).toString(),
+            remainingBalance: remaining.toString(),
             currentHolder: item.is_locked ? "Escrow Contract" : "Released",
             status: item.is_locked ? "LeaseActive" : "FundsReleased",
           });
@@ -65,9 +75,10 @@ export class EscrowService {
         siteConfig.contracts.escrowId,
         "get_escrow",
         args
-      ) as any;
+      ) as EscrowContractData | null;
       if (item) {
         const agreement = useStore.getState().agreements.find((a) => a.id === escrowId);
+        const remaining = BigInt(item.locked_amount) - BigInt(item.released_amount);
         const escrow: EscrowDetails = {
           escrowId: item.agreement_id,
           agreementId: item.agreement_id,
@@ -79,7 +90,7 @@ export class EscrowService {
           assetType: item.token_address || "USDC",
           depositAmount: item.locked_amount.toString(),
           releasedAmount: item.released_amount.toString(),
-          remainingBalance: (item.locked_amount - item.released_amount).toString(),
+          remainingBalance: remaining.toString(),
           currentHolder: item.is_locked ? "Escrow Contract" : "Released",
           status: item.is_locked ? "LeaseActive" : "FundsReleased",
         };

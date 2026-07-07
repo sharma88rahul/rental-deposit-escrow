@@ -6,42 +6,60 @@ import { Agreement, AgreementStatus } from "@/types";
 
 const client = new ContractClient();
 
+interface AgreementContractData {
+  id: number;
+  landlord: string;
+  tenant: string;
+  token: string;
+  deposit_amount: { toString(): string };
+  duration: number;
+  status: string;
+  metadata_hash: string;
+  refund_requested_amount: { toString(): string };
+}
+
 export class AgreementService {
   /**
    * Fetch all agreements from store cache (in-memory simulation)
    */
   public static async fetchAgreements(): Promise<Agreement[]> {
-    try {
-      const counter = await SorobanClient.getAgreementCounter();
-      const agreements: Agreement[] = [];
-
-      for (let i = 1; i <= counter; i++) {
-        const item = await SorobanClient.getAgreement(i) as any;
-        if (item) {
-          agreements.push({
-            id: item.id,
-            landlord: item.landlord,
-            tenant: item.tenant,
-            token: item.token,
-            depositAmount: item.deposit_amount.toString(),
-            duration: item.duration,
-            status: item.status as AgreementStatus,
-            metadataHash: item.metadata_hash,
-            refundRequestedAmount: item.refund_requested_amount.toString(),
-            createdAt: new Date().toISOString(),
-          });
+    const agreements: Agreement[] = [];
+    let id = 1;
+    while (true) {
+      try {
+        const item = await SorobanClient.getAgreement(id) as AgreementContractData | null;
+        if (!item) {
+          break;
         }
+        agreements.push({
+          id: item.id,
+          landlord: item.landlord,
+          tenant: item.tenant,
+          token: item.token,
+          depositAmount: item.deposit_amount.toString(),
+          duration: item.duration,
+          status: item.status as AgreementStatus,
+          metadataHash: item.metadata_hash,
+          refundRequestedAmount: item.refund_requested_amount.toString(),
+          createdAt: new Date().toISOString(),
+        });
+        id++;
+      } catch (err: any) {
+        const errMsg = String(err.message || err);
+        if (
+          errMsg.includes("not found") ||
+          errMsg.includes("revert") ||
+          errMsg.includes("no valid results") ||
+          errMsg.includes("Simulation operation error")
+        ) {
+          break;
+        }
+        throw err;
       }
-
-      if (agreements.length > 0) {
-        useStore.setState({ agreements });
-        return agreements;
-      }
-    } catch (err) {
-      console.warn("Falling back to local agreements store cache due to:", err);
     }
 
-    return useStore.getState().agreements;
+    useStore.setState({ agreements });
+    return agreements;
   }
 
   /**
@@ -49,7 +67,7 @@ export class AgreementService {
    */
   public static async getAgreementDetails(id: number): Promise<Agreement | null> {
     try {
-      const item = await SorobanClient.getAgreement(id) as any;
+      const item = await SorobanClient.getAgreement(id) as AgreementContractData | null;
       if (item) {
         const agreement: Agreement = {
           id: item.id,
@@ -97,8 +115,8 @@ export class AgreementService {
     metadataHash: string;
   }): Promise<number> {
     // Validate wallets
-    const walletState = useWalletStore.getState();
-    if (!walletState.connected || !walletState.walletAddress) {
+    const landlordAddress = useWalletStore.getState().walletAddress;
+    if (!landlordAddress) {
       throw new Error("Wallet not connected");
     }
 
@@ -113,9 +131,7 @@ export class AgreementService {
 
     // Build Soroban operation envelope for syntax check compiler validation
     client.createAgreementOp({
-      title: params.title,
-      propertyAddress: params.propertyAddress,
-      landlord: "GD7K5R5P...LAND", // Default landlord address
+      landlord: landlordAddress,
       tenant: params.tenant,
       token: params.token,
       depositAmount: depositNum,
@@ -129,7 +145,7 @@ export class AgreementService {
         const newId = mainStore.addAgreement({
           title: params.title,
           propertyAddress: params.propertyAddress,
-          landlord: "GD7K5R5P...LAND",
+          landlord: landlordAddress,
           tenant: params.tenant,
           token: params.token,
           depositAmount: params.depositAmount,
@@ -208,7 +224,10 @@ export class AgreementService {
    * Accept agreement (invokes contract accept_agreement)
    */
   public static async acceptAgreement(id: number): Promise<void> {
-    client.acceptAgreementOp(id);
+    const tenantAddress = useWalletStore.getState().walletAddress;
+    if (tenantAddress) {
+      client.acceptAgreementOp(tenantAddress, id);
+    }
     return new Promise((resolve) => {
       setTimeout(() => {
         useStore.getState().updateAgreementStatus(id, "Accepted");
@@ -221,7 +240,11 @@ export class AgreementService {
    * Reject/Cancel agreement
    */
   public static async rejectAgreement(id: number): Promise<void> {
-    client.rejectAgreementOp(id);
+    try {
+      client.rejectAgreementOp(id);
+    } catch {
+      // Skip if not supported
+    }
     return new Promise((resolve) => {
       setTimeout(() => {
         useStore.getState().updateAgreementStatus(id, "Draft"); // Reverts to Draft/Cancelled state
@@ -235,7 +258,10 @@ export class AgreementService {
    */
   public static async proposeRefund(id: number, tenantRefundAmount: string): Promise<void> {
     const refundVal = parseFloat(tenantRefundAmount);
-    client.proposeRefundOp(id, refundVal);
+    const landlordAddress = useWalletStore.getState().walletAddress;
+    if (landlordAddress) {
+      client.proposeRefundOp(landlordAddress, id, refundVal);
+    }
     
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -250,7 +276,10 @@ export class AgreementService {
    */
   public static async resolveDispute(id: number, tenantRefundAmount: string): Promise<void> {
     const refundVal = parseFloat(tenantRefundAmount);
-    client.resolveDisputeOp(id, refundVal);
+    const arbitratorAddress = useWalletStore.getState().walletAddress;
+    if (arbitratorAddress) {
+      client.resolveDisputeOp(arbitratorAddress, id, refundVal);
+    }
 
     return new Promise((resolve) => {
       setTimeout(() => {

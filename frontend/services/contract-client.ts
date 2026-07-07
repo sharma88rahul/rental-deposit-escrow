@@ -62,8 +62,6 @@ export class ContractClient {
    * Simulates calling `create_agreement` on Rental Agreement Contract
    */
   public createAgreementOp(params: {
-    title: string;
-    propertyAddress: string;
     landlord: string;
     tenant: string;
     token: string;
@@ -71,15 +69,20 @@ export class ContractClient {
     duration: number;
     metadataHash: string;
   }) {
+    const buf = Buffer.alloc(32);
+    buf.write(params.metadataHash);
+
+    const metadataScVal = typeof xdr.ScVal.scvBytes === "function"
+      ? xdr.ScVal.scvBytes(buf)
+      : (nativeToScVal(buf) || ({} as unknown as xdr.ScVal));
+
     const args = [
-      toScVal(params.title, "string"),
-      toScVal(params.propertyAddress, "string"),
       toScVal(params.landlord, "address"),
       toScVal(params.tenant, "address"),
       toScVal(params.token, "address"),
-      toScVal(params.depositAmount, "u32"),
-      toScVal(params.duration, "u32"),
-      toScVal(params.metadataHash, "string"),
+      nativeToScVal(BigInt(params.depositAmount)),
+      nativeToScVal(BigInt(params.duration)),
+      metadataScVal,
     ];
 
     return this.buildRentalInvokeOperation("create_agreement", args);
@@ -88,37 +91,42 @@ export class ContractClient {
   /**
    * Simulates calling `accept_agreement` on Rental Agreement Contract
    */
-  public acceptAgreementOp(agreementId: number) {
-    const args = [toScVal(agreementId, "u32")];
+  public acceptAgreementOp(tenant: string, agreementId: number) {
+    const args = [
+      toScVal(tenant, "address"),
+      nativeToScVal(BigInt(agreementId)),
+    ];
     return this.buildRentalInvokeOperation("accept_agreement", args);
   }
 
   /**
-   * Simulates calling `reject_agreement` on Rental Agreement Contract
+   * Simulates calling `reject_agreement` on Rental Agreement Contract (local mockup helper)
    */
   public rejectAgreementOp(agreementId: number) {
-    const args = [toScVal(agreementId, "u32")];
-    return this.buildRentalInvokeOperation("reject_agreement", args);
+    console.warn(`reject_agreement is not supported on-chain for Agreement #${agreementId}. Skipping simulation.`);
+    return null;
   }
 
   /**
-   * Simulates calling `propose_refund` on Rental Agreement Contract
+   * Simulates calling `request_refund` on Rental Agreement Contract
    */
-  public proposeRefundOp(agreementId: number, refundAmount: number) {
+  public proposeRefundOp(landlord: string, agreementId: number, refundAmount: number) {
     const args = [
-      toScVal(agreementId, "u32"),
-      toScVal(refundAmount, "u32"),
+      toScVal(landlord, "address"),
+      nativeToScVal(BigInt(agreementId)),
+      nativeToScVal(BigInt(refundAmount)),
     ];
-    return this.buildRentalInvokeOperation("propose_refund", args);
+    return this.buildRentalInvokeOperation("request_refund", args);
   }
 
   /**
    * Simulates calling `resolve_dispute` on Rental Agreement Contract
    */
-  public resolveDisputeOp(agreementId: number, tenantSplit: number) {
+  public resolveDisputeOp(arbitrator: string, agreementId: number, tenantSplit: number) {
     const args = [
-      toScVal(agreementId, "u32"),
-      toScVal(tenantSplit, "u32"),
+      toScVal(arbitrator, "address"),
+      nativeToScVal(BigInt(agreementId)),
+      nativeToScVal(BigInt(tenantSplit)),
     ];
     return this.buildRentalInvokeOperation("resolve_dispute", args);
   }

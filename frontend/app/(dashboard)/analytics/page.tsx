@@ -24,13 +24,14 @@ export default function AnalyticsPage() {
   const {
     filters,
     setFilters,
-    monthlyActivity,
-    agreementDistribution,
-    escrowSplits,
-    transactionVolume,
     exportToCSV,
     exportToJSON,
   } = useAnalyticsStore();
+
+  const monthlyActivity = stats?.monthlyActivity || [];
+  const agreementDistribution = stats?.agreementDistribution || [];
+  const escrowSplits = stats?.escrowSplits || [];
+  const transactionVolume = stats?.transactionVolume || [];
 
   const handleExportCSV = () => {
     if (!stats) return;

@@ -4,19 +4,12 @@ import * as React from "react";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Play, ShieldCheck } from "lucide-react";
+import { RefreshCw, ShieldCheck } from "lucide-react";
 import { useActivity } from "@/hooks/useActivity";
-import { EventService } from "@/services/event";
 
 export default function ActivityPage() {
   const { activitiesQuery } = useActivity();
   const { isRefetching, refetch } = activitiesQuery;
-
-  // Simulator helper trigger inside the Activity Feed
-  const handleTriggerSimulate = () => {
-    // Calling internal simulation to yield mock blockchain logs immediately
-    EventService.generateMockBlockchainEvent();
-  };
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -29,15 +22,6 @@ export default function ActivityPage() {
           </p>
         </div>
         <div className="flex gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTriggerSimulate}
-            className="flex items-center space-x-1.5"
-          >
-            <Play className="h-4 w-4 text-primary" />
-            <span>Simulate Event</span>
-          </Button>
           <Button
             variant="outline"
             size="sm"

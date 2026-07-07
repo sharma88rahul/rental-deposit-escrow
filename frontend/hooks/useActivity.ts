@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActivityStore } from "@/store/useActivityStore";
+import { useWalletStore } from "@/store/useWalletStore";
+import { SorobanClient } from "@/services/soroban-client";
 import { EventService } from "@/services/event";
 import { Transaction } from "@/types";
 
@@ -11,6 +13,16 @@ export function useActivity() {
   // Listen to live events on mount
   React.useEffect(() => {
     EventService.startSubscription();
+    
+    const walletState = useWalletStore.getState();
+    if (walletState.connected && walletState.walletAddress) {
+      SorobanClient.fetchHorizonTransactions(walletState.walletAddress).then((txs) => {
+        if (txs && txs.length > 0) {
+          useActivityStore.setState({ transactions: txs });
+        }
+      });
+    }
+
     return () => {
       EventService.stopSubscription();
     };

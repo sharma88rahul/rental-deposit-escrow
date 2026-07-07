@@ -28,37 +28,10 @@ interface AnalyticsState {
   exportToJSON: (data: unknown, filename: string) => void;
 }
 
-const mockMonthlyActivity: ChartDataItem[] = [
-  { name: "Jan", value: 3 },
-  { name: "Feb", value: 5 },
-  { name: "Mar", value: 4 },
-  { name: "Apr", value: 8 },
-  { name: "May", value: 12 },
-  { name: "Jun", value: 15 },
-];
-
-const mockAgreementDistribution: ChartDataItem[] = [
-  { name: "Active", value: 8 },
-  { name: "Completed", value: 12 },
-  { name: "Disputed", value: 2 },
-  { name: "Draft", value: 4 },
-];
-
-const mockEscrowSplits: ChartDataItem[] = [
-  { name: "Locked Vault", value: 15400 },
-  { name: "Released Tenant", value: 8200 },
-  { name: "Released Landlord", value: 1400 },
-];
-
-const mockTransactionVolume: ChartDataItem[] = [
-  { name: "Mon", value: 12 },
-  { name: "Tue", value: 19 },
-  { name: "Wed", value: 8 },
-  { name: "Thu", value: 15 },
-  { name: "Fri", value: 22 },
-  { name: "Sat", value: 14 },
-  { name: "Sun", value: 10 },
-];
+const mockMonthlyActivity: ChartDataItem[] = [];
+const mockAgreementDistribution: ChartDataItem[] = [];
+const mockEscrowSplits: ChartDataItem[] = [];
+const mockTransactionVolume: ChartDataItem[] = [];
 
 export const useAnalyticsStore = create<AnalyticsState>((set) => ({
   filters: {
