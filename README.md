@@ -90,20 +90,29 @@ Create a `.env` file in the root workspace (copying `.env.example`):
 ```ini
 NEXT_PUBLIC_STELLAR_NETWORK=testnet
 NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
-NEXT_PUBLIC_RENTAL_AGREEMENT_ID=CCFPZOCU33AWX2NKX47XD6W5JNYFP7MU57DTQFB5XOOQSJLSSC4PMX25
-NEXT_PUBLIC_ESCROW_ID=CDXKQTPLDDF4RBMJCCTGV2XQ44DCJOY7XZZKPEDJFKQTECSTYHBOI42O
+NEXT_PUBLIC_RENTAL_AGREEMENT_ID=CC32FLXF5AQUBFRFRQBBUAXUDFXUSQIQ6DFCK6OOUTQXDTLANUKI5OOE
+NEXT_PUBLIC_ESCROW_ID=CANVAZCSTN7MSQKSAKUNAHM6NGVRSN76ZWHUYL2ZY6BBS4IMA6FF4T3N
 ```
 
-### 4. Running App Locally
+### 4. Live URL of the website
 ```bash
 # Start Next.js server
 npm run dev --prefix frontend
 ```
-Navigate to `http://localhost:3000` to view the platform.
+URL: https://rental-deposit-escrow.vercel.app/
 
 ---
 
-## 7. Testing Procedures
+## 7. Screenshot of the Website
+
+### Landing Page
+<img width="1920" height="1080" alt="Screenshot (523)" src="https://github.com/user-attachments/assets/1ec91857-612f-47b9-be64-28d0083d711a" />
+
+### Features and Dashboard
+<img width="1920" height="1080" alt="Screenshot (506)" src="https://github.com/user-attachments/assets/02bc0eb4-2086-4877-a490-c3614f911ddf" />
+
+
+## 8. Testing Procedures
 
 ### Run Smart Contract Tests
 ```bash
@@ -119,12 +128,12 @@ npm run test
 
 ---
 
-## 8. Deployment Workflow
+## 9. Deployment Workflow
 
 Refer to [docs/deployment.md](file:///c:/Users/SHUBHAJEET/Documents/stellar%20project%202/rental-deposit-escrow/docs/deployment.md) for detailed deployment sequences on Stellar Testnet.
 
 ---
 
-## 9. License
+## 10. License
 
 This project is licensed under the MIT License. See [LICENSE](file:///c:/Users/SHUBHAJEET/Documents/stellar%20project%202/rental-deposit-escrow/LICENSE) for details.
