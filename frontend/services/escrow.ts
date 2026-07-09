@@ -21,48 +21,53 @@ export class EscrowService {
    * Fetch all escrows from the Zustand cache store
    */
   public static async fetchEscrows(): Promise<EscrowDetails[]> {
-    try {
-      const counter = await SorobanClient.getAgreementCounter();
-      const escrows: EscrowDetails[] = [];
-
-      for (let i = 1; i <= counter; i++) {
-        // Query the escrow state from contract
-        const args = [toScVal(i, "u32")];
+    const escrows: EscrowDetails[] = [];
+    let id = 1;
+    while (true) {
+      try {
+        const args = [toScVal(id, "u64")];
         const item = await SorobanClient.queryContract(
           siteConfig.contracts.escrowId,
           "get_escrow",
           args
         ) as EscrowContractData | null;
-        if (item) {
-          const agreement = useStore.getState().agreements.find((a) => a.id === i);
-          const remaining = BigInt(item.locked_amount) - BigInt(item.released_amount);
-          escrows.push({
-            escrowId: item.agreement_id,
-            agreementId: item.agreement_id,
-            tenant: item.tenant,
-            landlord: item.landlord,
-            title: agreement?.title || `Escrow Vault #${i}`,
-            propertyAddress: agreement?.propertyAddress || "Stellar Ledger Address",
-            createdAt: agreement?.createdAt || new Date().toISOString(),
-            assetType: item.token_address || "USDC",
-            depositAmount: item.locked_amount.toString(),
-            releasedAmount: item.released_amount.toString(),
-            remainingBalance: remaining.toString(),
-            currentHolder: item.is_locked ? "Escrow Contract" : "Released",
-            status: item.is_locked ? "LeaseActive" : "FundsReleased",
-          });
+        if (!item) {
+          break;
         }
+        const agreement = useStore.getState().agreements.find((a) => a.id === id);
+        const remaining = BigInt(item.locked_amount) - BigInt(item.released_amount);
+        escrows.push({
+          escrowId: item.agreement_id,
+          agreementId: item.agreement_id,
+          tenant: item.tenant,
+          landlord: item.landlord,
+          title: agreement?.title || `Escrow Vault #${id}`,
+          propertyAddress: agreement?.propertyAddress || "Stellar Ledger Address",
+          createdAt: agreement?.createdAt || new Date().toISOString(),
+          assetType: item.token_address || "USDC",
+          depositAmount: item.locked_amount.toString(),
+          releasedAmount: item.released_amount.toString(),
+          remainingBalance: remaining.toString(),
+          currentHolder: item.is_locked ? "Escrow Contract" : "Released",
+          status: item.is_locked ? "LeaseActive" : "FundsReleased",
+        });
+        id++;
+      } catch (err: unknown) {
+        const errMsg = String((err as Error).message || err);
+        if (
+          errMsg.includes("not found") ||
+          errMsg.includes("revert") ||
+          errMsg.includes("no valid results") ||
+          errMsg.includes("Simulation operation error")
+        ) {
+          break;
+        }
+        throw err;
       }
-
-      if (escrows.length > 0) {
-        useEscrowStore.setState({ escrows });
-        return escrows;
-      }
-    } catch (err) {
-      console.warn("Falling back to local escrow store cache due to:", err);
     }
 
-    return useEscrowStore.getState().escrows;
+    useEscrowStore.setState({ escrows });
+    return escrows;
   }
 
   /**
@@ -70,7 +75,7 @@ export class EscrowService {
    */
   public static async getEscrowDetails(escrowId: number): Promise<EscrowDetails | null> {
     try {
-      const args = [toScVal(escrowId, "u32")];
+      const args = [toScVal(escrowId, "u64")];
       const item = await SorobanClient.queryContract(
         siteConfig.contracts.escrowId,
         "get_escrow",

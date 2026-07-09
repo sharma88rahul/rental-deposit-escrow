@@ -44,8 +44,8 @@ export class AgreementService {
           createdAt: new Date().toISOString(),
         });
         id++;
-      } catch (err: any) {
-        const errMsg = String(err.message || err);
+      } catch (err: unknown) {
+        const errMsg = String((err as Error).message || err);
         if (
           errMsg.includes("not found") ||
           errMsg.includes("revert") ||

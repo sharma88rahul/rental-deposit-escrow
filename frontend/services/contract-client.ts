@@ -15,8 +15,11 @@ export function toScVal(value: unknown, type?: "address" | "symbol" | "u32" | "u
   if (type === "symbol") {
     return xdr.ScVal.scvSymbol(value as string);
   }
-  if (type === "u32") {
-    return xdr.ScVal.scvU32(value as number);
+  if (type === "u32" || type === "u64") {
+    if (typeof xdr.Uint64 !== "undefined" && typeof xdr.ScVal.scvU64 === "function") {
+      return xdr.ScVal.scvU64(xdr.Uint64.fromString(String(value)));
+    }
+    return nativeToScVal(value);
   }
   if (type === "string") {
     return xdr.ScVal.scvString(value as string);
@@ -94,7 +97,7 @@ export class ContractClient {
   public acceptAgreementOp(tenant: string, agreementId: number) {
     const args = [
       toScVal(tenant, "address"),
-      nativeToScVal(BigInt(agreementId)),
+      toScVal(agreementId, "u64"),
     ];
     return this.buildRentalInvokeOperation("accept_agreement", args);
   }
@@ -113,7 +116,7 @@ export class ContractClient {
   public proposeRefundOp(landlord: string, agreementId: number, refundAmount: number) {
     const args = [
       toScVal(landlord, "address"),
-      nativeToScVal(BigInt(agreementId)),
+      toScVal(agreementId, "u64"),
       nativeToScVal(BigInt(refundAmount)),
     ];
     return this.buildRentalInvokeOperation("request_refund", args);
@@ -125,7 +128,7 @@ export class ContractClient {
   public resolveDisputeOp(arbitrator: string, agreementId: number, tenantSplit: number) {
     const args = [
       toScVal(arbitrator, "address"),
-      nativeToScVal(BigInt(agreementId)),
+      toScVal(agreementId, "u64"),
       nativeToScVal(BigInt(tenantSplit)),
     ];
     return this.buildRentalInvokeOperation("resolve_dispute", args);
