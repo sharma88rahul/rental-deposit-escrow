@@ -33,8 +33,9 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md transition-all duration-300">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <>
+      <nav className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md transition-all duration-300">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
@@ -157,8 +158,9 @@ export function Navbar() {
         </div>
       )}
 
+      </nav>
       {/* Wallet Connect Dialog */}
       <WalletConnectModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />
-    </nav>
+    </>
   );
 }
