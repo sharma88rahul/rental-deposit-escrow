@@ -8,18 +8,25 @@ import {
 import { siteConfig } from "@/config/site";
 
 // Helper to convert native values to Soroban ScVal
-export function toScVal(value: unknown, type?: "address" | "symbol" | "u32" | "u64" | "string"): xdr.ScVal {
+export function toScVal(
+  value: unknown,
+  type?: "address" | "symbol" | "u32" | "u64" | "i128" | "u128" | "string"
+): xdr.ScVal {
   if (type === "address") {
     return xdr.ScVal.scvAddress(Address.fromString(value as string).toScAddress());
   }
   if (type === "symbol") {
     return xdr.ScVal.scvSymbol(value as string);
   }
-  if (type === "u32" || type === "u64") {
-    if (typeof xdr.Uint64 !== "undefined" && typeof xdr.ScVal.scvU64 === "function") {
-      return xdr.ScVal.scvU64(xdr.Uint64.fromString(String(value)));
-    }
-    return nativeToScVal(value);
+  if (type === "u32") {
+    return xdr.ScVal.scvU32(Number(value));
+  }
+  if (type === "u64") {
+    return xdr.ScVal.scvU64(new xdr.Uint64(BigInt(value as number)));
+  }
+  if (type === "i128" || type === "u128") {
+    // Use nativeToScVal with explicit type hint so the SDK produces the correct ScvI128/ScvU128
+    return nativeToScVal(BigInt(value as number), { type: type === "i128" ? "i128" : "u128" });
   }
   if (type === "string") {
     return xdr.ScVal.scvString(value as string);
@@ -72,19 +79,37 @@ export class ContractClient {
     duration: number;
     metadataHash: string;
   }) {
+    // BytesN<32>: contract expects EXACTLY 32 bytes.
+    // We generate 32 random bytes and encode them as scvBytes.
+    // Buffer.write() of a UTF-8 string would produce wrong lengths —
+    // instead we fill with random bytes which is a valid 32-byte identifier.
     const buf = Buffer.alloc(32);
-    buf.write(params.metadataHash);
+    // Write up to 32 bytes of the metadataHash string as UTF-8, rest stays as 0-padding.
+    // This is safe: buf.write returns bytes written, and alloc(32) zero-fills the rest.
+    const hashBytes = Buffer.from(params.metadataHash, "utf8").subarray(0, 32);
+    hashBytes.copy(buf);
+    // Pad with random bytes if the string is shorter than 32 bytes to ensure
+    // uniqueness across agreements (prevents hash collisions on short titles).
+    if (hashBytes.length < 32) {
+      const rand = Buffer.alloc(32 - hashBytes.length);
+      for (let i = 0; i < rand.length; i++) {
+        rand[i] = Math.floor(Math.random() * 256);
+      }
+      rand.copy(buf, hashBytes.length);
+    }
 
-    const metadataScVal = typeof xdr.ScVal.scvBytes === "function"
-      ? xdr.ScVal.scvBytes(buf)
-      : (nativeToScVal(buf) || ({} as unknown as xdr.ScVal));
+    const metadataScVal = xdr.ScVal.scvBytes(buf);
 
     const args = [
       toScVal(params.landlord, "address"),
       toScVal(params.tenant, "address"),
       toScVal(params.token, "address"),
-      nativeToScVal(BigInt(params.depositAmount)),
-      nativeToScVal(BigInt(params.duration)),
+      // deposit_amount is i128 in the contract — must use {type:'i128'} to get ScvI128.
+      // nativeToScVal(BigInt(n)) without a type hint produces ScvU64, which causes
+      // WasmVm::InvalidAction (type mismatch panic) inside the contract WASM.
+      nativeToScVal(BigInt(Math.round(params.depositAmount * 10_000_000)), { type: "i128" }),
+      // duration is u64 in the contract
+      nativeToScVal(BigInt(params.duration), { type: "u64" }),
       metadataScVal,
     ];
 
@@ -116,8 +141,8 @@ export class ContractClient {
   public proposeRefundOp(landlord: string, agreementId: number, refundAmount: number) {
     const args = [
       toScVal(landlord, "address"),
-      toScVal(agreementId, "u64"),
-      nativeToScVal(BigInt(refundAmount)),
+      nativeToScVal(BigInt(agreementId), { type: "u64" }),     // agreement_id: u64
+      nativeToScVal(BigInt(Math.round(refundAmount * 10_000_000)), { type: "i128" }), // refund_amount: i128
     ];
     return this.buildRentalInvokeOperation("request_refund", args);
   }
@@ -128,8 +153,8 @@ export class ContractClient {
   public resolveDisputeOp(arbitrator: string, agreementId: number, tenantSplit: number) {
     const args = [
       toScVal(arbitrator, "address"),
-      toScVal(agreementId, "u64"),
-      nativeToScVal(BigInt(tenantSplit)),
+      nativeToScVal(BigInt(agreementId), { type: "u64" }),       // agreement_id: u64
+      nativeToScVal(BigInt(Math.round(tenantSplit * 10_000_000)), { type: "i128" }), // tenant split: i128
     ];
     return this.buildRentalInvokeOperation("resolve_dispute", args);
   }
@@ -144,10 +169,10 @@ export class ContractClient {
     token: string;
   }) {
     const args = [
-      toScVal(params.tenant, "address"),
-      toScVal(params.agreementId, "u32"),
-      toScVal(params.amount, "u32"),
-      toScVal(params.token, "address"),
+      nativeToScVal(BigInt(params.agreementId), { type: "u64" }), // agreement_id: u64
+      toScVal(params.tenant, "address"),                          // tenant: Address
+      toScVal(params.token, "address"),                           // token: Address
+      nativeToScVal(BigInt(Math.round(params.amount * 10_000_000)), { type: "i128" }), // amount: i128
     ];
     return this.buildEscrowInvokeOperation("lock_deposit", args);
   }

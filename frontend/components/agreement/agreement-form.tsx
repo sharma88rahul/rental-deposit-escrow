@@ -8,6 +8,7 @@ import { Dialog } from "../ui/dialog";
 import { Send, Eye, ShieldAlert, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { siteConfig } from "@/config/site";
+import { useWalletStore } from "@/store/useWalletStore";
 
 export function AgreementForm() {
   const router = useRouter();
@@ -27,6 +28,9 @@ export function AgreementForm() {
   const [showPreview, setShowPreview] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [generalError, setGeneralError] = React.useState<string | null>(null);
+
+  // Connected wallet address (landlord)
+  const landlordAddress = useWalletStore((s) => s.walletAddress);
 
   const handleValidateForm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +60,12 @@ export function AgreementForm() {
       return;
     }
 
+    // Extra: landlord cannot be their own tenant
+    if (tenant.trim() === landlordAddress) {
+      setFieldErrors({ tenant: "Tenant address must be different from your connected wallet (landlord)." });
+      return;
+    }
+
     // Validation passed, show preview modal
     setShowPreview(true);
   };
@@ -72,12 +82,16 @@ export function AgreementForm() {
       const end = new Date(leaseEndDate).getTime();
       const durationSeconds = Math.floor((end - start) / 1000);
 
-      // Trigger mutation
+      // token MUST be a valid Stellar Asset Contract address — NOT the rental agreement ID.
+      // We use the XLM SAC so that XLM (the native asset) is used as the deposit token.
+      // If you want USDC, replace with siteConfig.contracts.usdcSacId.
+      const depositToken = siteConfig.contracts.xlmSacId;
+
       await createAgreementMutation.mutateAsync({
         title,
         propertyAddress,
-        tenant,
-        token: siteConfig.contracts.rentalAgreementId,
+        tenant: tenant.trim(),
+        token: depositToken,
         depositAmount,
         duration: durationSeconds,
         metadataHash: "Qm" + Math.random().toString(36).substring(2, 15),
@@ -87,7 +101,29 @@ export function AgreementForm() {
       router.push(siteConfig.routes.agreements);
     } catch (err: unknown) {
       console.error(err);
-      const errMsg = err instanceof Error ? err.message : "Failed to broadcast transaction.";
+      let errMsg = "Failed to broadcast transaction.";
+      if (err instanceof Error) {
+        errMsg = err.message;
+      } else if (err && typeof err === "object") {
+        errMsg = (err as any).message || (err as any).error || JSON.stringify(err);
+      } else if (typeof err === "string") {
+        errMsg = err;
+      }
+
+      // Translate raw contract errors into user-friendly messages
+      if (errMsg.includes("NotInitialized") || errMsg.includes("MissingValue")) {
+        errMsg =
+          "The RentSure smart contract has not been initialized on Testnet yet. " +
+          "Please ask the contract deployer to run the initialization script (initialize-contracts.js) " +
+          "before creating agreements.";
+      } else if (errMsg.includes("InvalidParticipant")) {
+        errMsg = "The tenant address cannot be the same as the landlord (your connected wallet).";
+      } else if (errMsg.includes("InvalidAmount")) {
+        errMsg = "Deposit amount must be greater than zero.";
+      } else if (errMsg.includes("rejected") || errMsg.includes("cancel")) {
+        errMsg = "Transaction was cancelled in your wallet. Please try again.";
+      }
+
       setGeneralError(errMsg);
       setShowConfirm(false);
     }
@@ -146,10 +182,10 @@ export function AgreementForm() {
 
         {/* Financial Split / Amount */}
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold">Required Security Deposit (USDC) *</label>
+          <label className="text-sm font-semibold">Required Security Deposit (XLM) *</label>
           <input
             type="number"
-            placeholder="e.g. 1500"
+            placeholder="e.g. 50"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
@@ -233,7 +269,7 @@ export function AgreementForm() {
             </div>
             <div className="grid grid-cols-2 border-b border-border/40 pb-2">
               <span className="text-muted-foreground">Deposit Value:</span>
-              <span className="font-bold text-primary">{depositAmount} USDC</span>
+              <span className="font-bold text-primary">{depositAmount} XLM</span>
             </div>
             <div className="grid grid-cols-2 border-b border-border/40 pb-2">
               <span className="text-muted-foreground">Start Date:</span>

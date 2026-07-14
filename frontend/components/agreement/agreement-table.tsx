@@ -112,7 +112,7 @@ export function AgreementTable({ agreements }: AgreementTableProps) {
                   {shortenKey(agreement.tenant)}
                 </td>
                 <td className="p-4 font-semibold text-foreground">
-                  {agreement.depositAmount} USDC
+                  {agreement.depositAmount} XLM
                 </td>
                 <td className="p-4">
                   <Badge status={agreement.status} />

@@ -3,6 +3,7 @@ import { FreighterModule } from "@creit-tech/stellar-wallets-kit/modules/freight
 import { AlbedoModule } from "@creit-tech/stellar-wallets-kit/modules/albedo";
 import { xBullModule } from "@creit-tech/stellar-wallets-kit/modules/xbull";
 import { Horizon } from "@stellar/stellar-sdk";
+import { useWalletStore } from "@/store/useWalletStore";
 
 let isKitInitialized = false;
 
@@ -82,3 +83,34 @@ export async function fetchBalanceService(
     throw error;
   }
 }
+
+/**
+ * Sign a Soroban transaction XDR using the currently active wallet (Freighter etc.).
+ * Called by SorobanClient.submitSorobanTransaction() as the signFn callback.
+ *
+ * PROVEN MISSING: This function did not exist before. Without it, the
+ * createAgreementOp() return value was discarded and a mock setTimeout
+ * wrote a fake local ID instead of ever contacting Freighter.
+ */
+export async function signTransactionService(
+  xdrToSign: string,
+  networkPassphrase: string
+): Promise<string> {
+  // Automatically restore kit state if a persisted wallet session exists
+  const store = useWalletStore.getState();
+  if (store.connected && store.activeWallet) {
+    console.log(`[signTransactionService] Restoring kit session for wallet: ${store.activeWallet}`);
+    initWalletKit(store.network);
+    StellarWalletsKit.setWallet(store.activeWallet);
+  }
+
+  const { signedTxXdr } = await StellarWalletsKit.signTransaction(xdrToSign, {
+    networkPassphrase,
+  });
+  if (!signedTxXdr) {
+    throw new Error("Wallet returned no signed XDR. User may have rejected the transaction.");
+  }
+  console.log("[signTransactionService] Signed XDR received from wallet.");
+  return signedTxXdr;
+}
+

@@ -278,7 +278,7 @@ export default function AgreementDetailsPage() {
                   <Coins className="h-5 w-5 text-primary mt-1" />
                   <div>
                     <div className="text-xs text-muted-foreground">Required Deposit</div>
-                    <div className="font-bold text-lg mt-0.5 text-primary">{agreement.depositAmount} USDC</div>
+                    <div className="font-bold text-lg mt-0.5 text-primary">{agreement.depositAmount} XLM</div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
@@ -315,11 +315,11 @@ export default function AgreementDetailsPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Remaining Balance</span>
-                      <span className="font-bold text-amber-500">{escrow.remainingBalance} USDC</span>
+                      <span className="font-bold text-amber-500">{escrow.remainingBalance} XLM</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block">Released Split</span>
-                      <span className="font-bold text-primary">{escrow.releasedAmount} USDC</span>
+                      <span className="font-bold text-primary">{escrow.releasedAmount} XLM</span>
                     </div>
                   </div>
                   <div className="text-[10px] text-muted-foreground pt-2.5 border-t border-primary/10 flex items-center justify-between">
@@ -346,12 +346,12 @@ export default function AgreementDetailsPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Refund to Tenant:</span>
-                      <span className="font-bold text-foreground ml-1.5">{agreement.refundRequestedAmount} USDC</span>
+                      <span className="font-bold text-foreground ml-1.5">{agreement.refundRequestedAmount} XLM</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Deduction to Landlord:</span>
                       <span className="font-bold text-foreground ml-1.5">
-                        {parseFloat(agreement.depositAmount) - parseFloat(agreement.refundRequestedAmount)} USDC
+                        {parseFloat(agreement.depositAmount) - parseFloat(agreement.refundRequestedAmount)} XLM
                       </span>
                     </div>
                   </div>
@@ -444,7 +444,7 @@ export default function AgreementDetailsPage() {
       <Dialog isOpen={isDeductOpen} onClose={() => setIsDeductOpen(false)} title="Propose Deduction Split">
         <form onSubmit={handleDeductionSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">Tenant Refund Allocation (USDC)</label>
+            <label className="text-sm font-semibold">Tenant Refund Allocation (XLM)</label>
             <input
               type="number"
               placeholder={`Max ${agreement.depositAmount}`}
@@ -454,7 +454,7 @@ export default function AgreementDetailsPage() {
               className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Tenant receives {deductInput || 0} USDC. Landlord retains the remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(deductInput) || 0)} USDC) for repairs or unpaid rent.
+              Tenant receives {deductInput || 0} XLM. Landlord retains the remaining balance ({parseFloat(agreement.depositAmount) - (parseFloat(deductInput) || 0)} XLM) for repairs or unpaid rent.
             </p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -472,7 +472,7 @@ export default function AgreementDetailsPage() {
       <Dialog isOpen={isDisputeOpen} onClose={() => setIsDisputeOpen(false)} title="Arbitration Resolution Split">
         <form onSubmit={handleArbitrationSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">Tenant Refund Allocation (USDC)</label>
+            <label className="text-sm font-semibold">Tenant Refund Allocation (XLM)</label>
             <input
               type="number"
               placeholder={`Max ${agreement.depositAmount}`}
@@ -482,7 +482,7 @@ export default function AgreementDetailsPage() {
               className="w-full px-3.5 py-2 text-sm bg-secondary/40 border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary focus:border-primary placeholder:text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Submit the binding split: {disputeInput || 0} USDC to Tenant, and {parseFloat(agreement.depositAmount) - (parseFloat(disputeInput) || 0)} USDC to Landlord.
+              Submit the binding split: {disputeInput || 0} XLM to Tenant, and {parseFloat(agreement.depositAmount) - (parseFloat(disputeInput) || 0)} XLM to Landlord.
             </p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -523,7 +523,7 @@ export default function AgreementDetailsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-semibold">Security Deposit (USDC) *</label>
+            <label className="text-sm font-semibold">Security Deposit (XLM) *</label>
             <input
               type="number"
               value={editAmount}

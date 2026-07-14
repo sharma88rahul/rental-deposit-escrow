@@ -1,5 +1,5 @@
 import { ContractClient, toScVal } from "./contract-client";
-import { SorobanClient } from "./soroban-client";
+import { SorobanClient } from "./soroban-client-new";
 import { useEscrowStore, EscrowDetails } from "@/store/useEscrowStore";
 import { useStore } from "@/store/useStore";
 import { siteConfig } from "@/config/site";

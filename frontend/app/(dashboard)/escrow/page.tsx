@@ -104,7 +104,7 @@ export default function EscrowDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{metrics.totalLocked} USDC</div>
+            <div className="text-2xl font-bold text-foreground">{metrics.totalLocked} XLM</div>
             <p className="text-xs text-muted-foreground mt-1">Vaulted securely in Soroban contracts.</p>
           </CardContent>
         </Card>
@@ -117,7 +117,7 @@ export default function EscrowDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{metrics.totalReleased} USDC</div>
+            <div className="text-2xl font-bold text-foreground">{metrics.totalReleased} XLM</div>
             <p className="text-xs text-muted-foreground mt-1">Released back to participants.</p>
           </CardContent>
         </Card>

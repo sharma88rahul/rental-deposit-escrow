@@ -2,7 +2,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useActivityStore } from "@/store/useActivityStore";
 import { useWalletStore } from "@/store/useWalletStore";
-import { SorobanClient } from "@/services/soroban-client";
+import { SorobanClient } from "@/services/soroban-client-new";
 import { EventService } from "@/services/event";
 import { Transaction } from "@/types";
 

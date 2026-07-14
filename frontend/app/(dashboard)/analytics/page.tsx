@@ -41,7 +41,7 @@ export default function AnalyticsPage() {
           "Total Agreements": stats.totalAgreements,
           "Active Agreements": stats.activeAgreements,
           "Completed Agreements": stats.completedAgreements,
-          "Total Escrow Value (USDC)": stats.totalEscrowValue,
+          "Total Escrow Value (XLM)": stats.totalEscrowValue,
           "Released Split Funds": stats.releasedFunds,
           "Pending Refunds": stats.pendingRefunds,
           "Average Deposit": stats.averageDeposit,
@@ -185,8 +185,8 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.totalEscrowValue.toLocaleString()} USDC</div>
-            <p className="text-xs text-muted-foreground mt-1">Average Deposit: {stats.averageDeposit} USDC</p>
+            <div className="text-2xl font-bold text-primary">{stats.totalEscrowValue.toLocaleString()} XLM</div>
+            <p className="text-xs text-muted-foreground mt-1">Average Deposit: {stats.averageDeposit} XLM</p>
           </CardContent>
         </Card>
 
@@ -198,7 +198,7 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-500">{stats.releasedFunds.toLocaleString()} USDC</div>
+            <div className="text-2xl font-bold text-emerald-500">{stats.releasedFunds.toLocaleString()} XLM</div>
             <p className="text-xs text-muted-foreground mt-1">Released safely to landlords/tenants.</p>
           </CardContent>
         </Card>

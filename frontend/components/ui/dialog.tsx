@@ -47,13 +47,13 @@ export function Dialog({ isOpen, onClose, title, children, className }: DialogPr
             transition={{ type: "spring", duration: 0.4 }}
             className={twMerge(
               clsx(
-                "relative z-10 w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-xl shadow-background/50",
+                "relative z-10 w-full max-w-lg rounded-xl border border-border bg-card shadow-xl shadow-background/50 max-h-[90vh] flex flex-col overflow-hidden",
                 className
               )
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-border">
+            <div className="flex items-center justify-between p-6 pb-4 border-b border-border shrink-0">
               {title && <h2 className="text-xl font-semibold tracking-tight">{title}</h2>}
               <button
                 onClick={onClose}
@@ -63,8 +63,8 @@ export function Dialog({ isOpen, onClose, title, children, className }: DialogPr
               </button>
             </div>
 
-            {/* Content */}
-            <div className="pt-4">{children}</div>
+            {/* Content — scrolls independently so header is always visible */}
+            <div className="overflow-y-auto flex-1 p-6 pt-4">{children}</div>
           </motion.div>
         </div>
       )}

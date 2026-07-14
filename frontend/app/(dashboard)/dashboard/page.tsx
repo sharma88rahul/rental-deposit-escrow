@@ -19,7 +19,7 @@ import { useWalletStore } from "@/store/useWalletStore";
 import { siteConfig } from "@/config/site";
 import { AgreementService } from "@/services/agreement";
 import { EscrowService } from "@/services/escrow";
-import { SorobanClient } from "@/services/soroban-client";
+import { SorobanClient } from "@/services/soroban-client-new";
 
 export default function DashboardPage() {
   const { agreements, transactions } = useStore();
@@ -99,7 +99,7 @@ export default function DashboardPage() {
             <Lock className="h-5 w-5 text-primary animate-pulse" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalEscrowBalance.toLocaleString()} USDC</div>
+            <div className="text-2xl font-bold">{totalEscrowBalance.toLocaleString()} XLM</div>
             <p className="text-xs text-muted-foreground mt-1">Locked in smart contracts</p>
           </CardContent>
         </Card>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                           {agreement.propertyAddress}
                         </div>
                       </td>
-                      <td className="py-3.5 font-medium">{agreement.depositAmount} USDC</td>
+                      <td className="py-3.5 font-medium">{agreement.depositAmount} XLM</td>
                       <td className="py-3.5">
                         <Badge status={agreement.status} />
                       </td>

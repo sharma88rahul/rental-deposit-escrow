@@ -61,7 +61,7 @@ export function AgreementCard({ agreement }: AgreementCardProps) {
             <Coins className="h-4.5 w-4.5 text-primary shrink-0" />
             <div>
               <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Deposit</div>
-              <div className="font-semibold text-foreground">{agreement.depositAmount} USDC</div>
+              <div className="font-semibold text-foreground">{agreement.depositAmount} XLM</div>
             </div>
           </div>
           <div className="flex items-center space-x-1.5">

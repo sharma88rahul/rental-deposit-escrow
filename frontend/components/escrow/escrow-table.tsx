@@ -120,10 +120,10 @@ export function EscrowTable({ escrows }: EscrowTableProps) {
                   </span>
                 </td>
                 <td className="p-4 font-semibold text-foreground">
-                  {e.depositAmount} USDC
+                  {e.depositAmount} XLM
                 </td>
                 <td className="p-4 font-semibold text-amber-500">
-                  {e.remainingBalance} USDC
+                  {e.remainingBalance} XLM
                 </td>
                 <td className="p-4">
                   <Badge status={e.status} />

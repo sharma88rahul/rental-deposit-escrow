@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, PlusCircle } from "lucide-react";
 import { useAgreements } from "@/hooks/useAgreements";
 import { useAgreementStore } from "@/store/useAgreementStore";
+import { useWalletStore } from "@/store/useWalletStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,6 +18,7 @@ export default function AgreementsPage() {
   const router = useRouter();
   const { agreementsQuery } = useAgreements();
   const { filters, setFilters, resetFilters } = useAgreementStore();
+  const walletAddress = useWalletStore((s) => s.walletAddress);
   const [searchInput, setSearchInput] = React.useState(filters.search);
 
   // Sync local search input with store (debounced or on submit)
@@ -46,14 +48,15 @@ export default function AgreementsPage() {
           (agreement.status === "FundsReleased" || agreement.status === "Resolved")) ||
         agreement.status === filters.status;
 
+      // Compare against the actual connected wallet address (not a hardcoded placeholder)
       const matchesRole =
-        filters.role === "all" ||
-        (filters.role === "landlord" && agreement.landlord === "GD7K5R5P...LAND") ||
-        (filters.role === "tenant" && agreement.tenant === "GD7K5R5P...LAND");
+        !filters.role || filters.role === "all" ||
+        (filters.role === "landlord" && agreement.landlord === walletAddress) ||
+        (filters.role === "tenant" && agreement.tenant === walletAddress);
 
       return matchesSearch && matchesStatus && matchesRole;
     });
-  }, [agreements, filters]);
+  }, [agreements, filters, walletAddress]);
 
   if (isLoading) {
     return <PageLoader />;
