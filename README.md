@@ -115,8 +115,27 @@ Video Link: https://drive.google.com/file/d/1_J5MuOhKxFWq5G7O45rZgCJJ6en-YSlt/vi
 ### Features and Dashboard
 <img width="1920" height="1080" alt="Screenshot (506)" src="https://github.com/user-attachments/assets/02bc0eb4-2086-4877-a490-c3614f911ddf" />
 
+---
 
-## 9. Testing Procedures
+## 9. Screenshot of Deployed Contracts
+
+### 1. 1st Deployed Contract (Rental Agreement Contract)
+- Network : Stellar Testnet
+- Contract Address : CC32FLXF5AQUBFRFRQBBUAXUDFXUSQIQ6DFCK6OOUTQXDTLANUKI5OOE
+- Contract Explorar : https://lab.stellar.org/smart-contracts/contract-explorer?$=network$id=testnet&label=Testnet&horizonUrl=https:////horizon-testnet.stellar.org&rpcUrl=https:////soroban-testnet.stellar.org&passphrase=Test%20SDF%20Network%20/;%20September%202015;&smartContracts$explorer$contractId=CC32FLXF5AQUBFRFRQBBUAXUDFXUSQIQ6DFCK6OOUTQXDTLANUKI5OOE;;
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/4d7e9e2b-2303-420e-9be9-ad4bb07a2e88" />
+
+### 2. 2nd Deployed Contract (Escrow Contract)
+- Network : Stellar Testnet
+- Contract Address : CANVAZCSTN7MSQKSAKUNAHM6NGVRSN76ZWHUYL2ZY6BBS4IMA6FF4T3N
+- Contract Explorar : https://lab.stellar.org/smart-contracts/contract-explorer?$=network$id=testnet&label=Testnet&horizonUrl=https:////horizon-testnet.stellar.org&rpcUrl=https:////soroban-testnet.stellar.org&passphrase=Test%20SDF%20Network%20/;%20September%202015;&smartContracts$explorer$contractId=CANVAZCSTN7MSQKSAKUNAHM6NGVRSN76ZWHUYL2ZY6BBS4IMA6FF4T3N;;
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/22595033-02a7-4897-b997-fea16aa8e162" />
+
+
+
+## 10. Testing Procedures
 
 ### Run Smart Contract Tests
 ```bash
@@ -132,7 +151,7 @@ npm run test
 
 ---
 
-## 10. Deployment Workflow
+## 11. Deployment Workflow
 
 Refer to [docs/deployment.md](file:///c:/Users/SHUBHAJEET/Documents/stellar%20project%202/rental-deposit-escrow/docs/deployment.md) for detailed deployment sequences on Stellar Testnet.
 
