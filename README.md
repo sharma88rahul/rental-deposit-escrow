@@ -102,8 +102,12 @@ npm run dev --prefix frontend
 URL: https://rental-deposit-escrow.vercel.app/
 
 ---
+## 7. Demo Video Link (Drive)
+Video Link: https://drive.google.com/file/d/1_J5MuOhKxFWq5G7O45rZgCJJ6en-YSlt/view?usp=drive_link
 
-## 7. Screenshot of the Website
+---
+
+## 8. Screenshot of the Website
 
 ### Landing Page
 <img width="1920" height="1080" alt="Screenshot (523)" src="https://github.com/user-attachments/assets/1ec91857-612f-47b9-be64-28d0083d711a" />
@@ -112,7 +116,7 @@ URL: https://rental-deposit-escrow.vercel.app/
 <img width="1920" height="1080" alt="Screenshot (506)" src="https://github.com/user-attachments/assets/02bc0eb4-2086-4877-a490-c3614f911ddf" />
 
 
-## 8. Testing Procedures
+## 9. Testing Procedures
 
 ### Run Smart Contract Tests
 ```bash
@@ -128,7 +132,7 @@ npm run test
 
 ---
 
-## 9. Deployment Workflow
+## 10. Deployment Workflow
 
 Refer to [docs/deployment.md](file:///c:/Users/SHUBHAJEET/Documents/stellar%20project%202/rental-deposit-escrow/docs/deployment.md) for detailed deployment sequences on Stellar Testnet.
 
